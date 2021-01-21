@@ -1,5 +1,5 @@
 %% ========================================================================
-%  submain program (example3) Multi-Point Single-Step scheme 
+%  submain program (example4) Multi-Point Single-Step scheme 
 %  written by Dongjin Lee (dongjin-lee@uiowa.edu) 
 %% ========================================================================
 function [history,searchdir, subUb, subLb, df] = runfmincon(x0)
@@ -12,7 +12,7 @@ history.fval = [];
 
 searchdir = [];
 nd = 10;
-fir = 0; % start from this 
+fir = 0; % initial iteration 
 % golden ratio constant 
 gr = (1+sqrt(5))/2; 
 options = optimoptions(@fmincon,'Algorithm','sqp','Display','iter','OutputFcn',@outfun);
@@ -20,9 +20,9 @@ options = optimoptions(options,'GradObj','on','GradConstr','on','TolCon',1e-4,'T
 lb = ones(1, nd)*0.1; ub = ones(1,nd)*35; 
 cntObj = 1; cntCon = 1;  
 
-% set terminiation condition
-eps1 = 1E-6; % the change of design variables
-eps3 = 1E-6; % convergence of objective values 
+% terminiation condition
+eps1 = 1E-6; % stopping criteria for design variables
+eps3 = 1E-6; % stopping criteria for objective value 
 
 % feasible estimation 
 dfLast = (ub - x0);
@@ -37,12 +37,12 @@ cnt = 0; % if tcnt == 0, Do the below loop, and otherwise, stop!
 objValueLast0 = 10;
 df = zeros(1,nd);
 while (cnt == 0)
-% iteration of subdomain problems
+% q iteration
 q = q + 1;
 
 cntSizing = 0; %
 cntSizing1 = 0;
-tmp = 0; % one-tile sizing
+tmp = 0; 
 while (cntSizing == 0)
 	tmp = tmp+1;
 	cntCon = 0; cntObj = 0; ii=0;
@@ -57,14 +57,14 @@ while (cntSizing == 0)
 	end 
 	if (chk == 1)
 	cntSizing1 = cntSizing1 + 1;
-	x0 = dfLast*(1/gr) + x0*(1-1/gr); % decide a feasible initial design points 
+	x0 = dfLast*(1/gr) + x0*(1-1/gr); % find feasible design
 	df(q,:) = x0;
 	else 
 	df(q,:) = x0;
 	cntSizing = 1;
 	end 
 	if (cntSizing1 == 10)
-		disp('Searching design points on a feasible region fails');
+		disp('Searching feasible design fails');
 		cntSizing = 1;
 	end 
 	
@@ -72,15 +72,13 @@ while (cntSizing == 0)
 if ((tmp==1) && (q~=1)) 
 	err1 = sqrt((objValue - objValueLast)'*(objValue - objValueLast));
     err2 = sqrt((c-cLast)*(c-cLast)');
-    %err3 = sqrt((df(q,:)-dfLast)*(df(q,:)-dfLast)');
 	if ((err1 <= 1e-2) && (err2 <= 1e-2))
-	% increase overall sub-region size 
+	% increase overall subregion size 
 	beta(:) = beta(:).*gr;
 	elseif ((err1 >= 7e-2) || (err2 >= 7e-2))
-	% decrease overall sub-region size 
+	% decrease overall subregion size 
 	beta(:) = beta(:).*1/gr;
     else end 
-	%% sizing one by one
 	for i=1:nd
 		% Is constraint inequality active?
 		chkL = sqrt((x(i)-subLb(q-1,i))^2);
@@ -88,12 +86,12 @@ if ((tmp==1) && (q~=1))
 		if ((chkL < 1e-2) || (chkU < 1e-2))
             beta(i) = beta(i).*gr;
 		end 
-		% Is dv on convergence 
+		% Is dv on convergence step 
         err3 = sqrt((df(q,i)-dfLast(i))^2);
 		if (err3 < 0.5)
 		beta(i) = beta(i).*(1/gr);
         end 
-        % limit size of sub-region
+        % limit subregion size
 		if (beta(i) < 0.05)
 			beta(i) = 0.05;
 		end 
@@ -101,7 +99,7 @@ if ((tmp==1) && (q~=1))
 end 
 end 
 
-% set sub-domain location 
+% decide subregion
 for i=1:nd 
     %active check 
     if (q ~= 1)
@@ -125,8 +123,7 @@ for i=1:nd
      subLb(q,i) = df(q,i) -   beta(i)*(ub(i) - lb(i))/2;
      subUb(q,i) = df(q,i)  +  beta(i)*(ub(i) - lb(i))/2;
     end     
-    
-    % restraint to the b.c. 
+     
     if (subLb(q,i) < lb(i))
         subLb(q,i) = lb(i);
     end 
@@ -141,7 +138,6 @@ disp('sub-lower');
 disp(subLb(q,:));	
 save(filNam, 'subUb', 'subLb');
 terminate1 = (df(q,:)-dfLast)*(df(q,:)-dfLast)';
-%% terminate2  
 terminate3 = abs((objValue - objValueLast0) / objValue); 
 objValueLast0 = objValue;	
 
@@ -154,7 +150,7 @@ switch (cnt)
         disp('Optimization is completed');
     case 0      
         cntCon = 1; cntObj= 1; % single-step 
-        % solving sub-RDO problem in the single step
+        % solving local RDO problem using single-step GPCE
         [x,fval] = fmincon(@sobjfun,df(q,:),[],[],[],[],subLb(q,:),subUb(q,:),@sconfun,options);
         % obtaining data from step2 
         [objValueLast,~] = sobjfun(x);
