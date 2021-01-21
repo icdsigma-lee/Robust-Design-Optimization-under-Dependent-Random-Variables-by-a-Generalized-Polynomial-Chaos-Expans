@@ -1,5 +1,5 @@
 %% ========================================================================
-%  main program (example3)
+%  main program (example4)
 %  written by Dongjin Lee (dongjin-lee@uiowa.edu) 
 % RDO for mathematical functions
 % save history for every iterations 
