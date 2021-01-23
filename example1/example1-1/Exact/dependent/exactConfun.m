@@ -1,9 +1,9 @@
 %% ========================================================================
-% Example 1.1: Function of constraint function and its grandient 
-% Input: dv (design variables)
-% The analytic formulae of the first two moments and their sensitivity
-% obtained by Mathmatica 
-% written by Dongjin Lee (dongjin-lee@uiowa.edu) 
+% Example 1.1: Function of constraint function and its grandient  
+% Input: design variables (dv) Output: constraint value and its design sensitivities
+% Analytic formulae for the first two moment and their sensitivities
+% obtained by Mathematica 
+%  written by Dongjin Lee (dongjin-lee@uiowa.edu) 
 %% ========================================================================
 function [c, ceq, DC,  DCeq] = exactConfun(dv)
 global cntCon 

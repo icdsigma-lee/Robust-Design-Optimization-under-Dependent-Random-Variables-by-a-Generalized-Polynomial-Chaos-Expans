@@ -1,5 +1,5 @@
 %% ========================================================================
-%  score function (Multivariate Gaussian) 
+%  score function (Multivariate normal) 
 %  written by Dongjin Lee (dongjin-lee@uiowa.edu) 
 %% ========================================================================
 function [output]=scoreGauss(X, mu, cov)

@@ -1,24 +1,23 @@
 %% ========================================================================
-%  function to generate monomial moment matrix or gram matrix (GPCE)
+%  function to generate monomial moment matrix 
+%  output: gram.mat
 %  written by Dongjin Lee (dongjin-lee@uiowa.edu) 
 %% ========================================================================
-function genGramMatrix
-% user defined initialization 
-N = 2; % number of variables  
-m=4; % degree of ON (Orthonormal basis) for function y0   
-ms = 1; % degree of ON for score function
-nd = 2; % number of design variables 
-% L_{N,m}
-nA = nchoosek(N+m, m); % number of coefficients for function y0
-nAs = nchoosek(N+ms, ms); % number of coefficients for score function 
-% file name for saving data during 1st iteration 
+function genGramMatrix  
+N = 2; % # of random variables 
+m=4; % order of GPCE for generic function 
+ms = 1; % order of GPCE for score function
+nd = 2; % # of design variables  
+nA = nchoosek(N+m, m); % # of GPCE expansion coefficients for generic function 
+nAs = nchoosek(N+ms, ms);  % # of GPCE expansion coefficients for score function 
+% files for data at 1st iteration 
 FilNam = sprintf('gram.mat');
-opt = 'QR';
-% zero mean (mu)
+opt = 'QR'; % option for quadrature 
+% means vector (mu) 
 mu1 = 0; 
 mu2 = 0;
 mu = [mu1, mu2];
-% coefficient of variation (sig)
+% standard deviation (sig) 
 sig1 = 0.4;
 sig2 = 0.4;
 sig = [sig1, sig2];
@@ -26,7 +25,7 @@ sig = [sig1, sig2];
 rho12 = 0.4;
 cor1 = zeros(N,N);
 cor = [1,rho12; rho12,1];
-% normalized mean's covariance matrix (cov)
+% covariance matrix (cov)
 cov = zeros(N,N);
 for i=1:N
     for j=1:N
@@ -38,7 +37,7 @@ for i=1:N
     cor1(i,j) = cov(i,j)/(sig(i)*sig(j));    
     end
 end 
-% original covariance matrix (covT) (shift transformation remains the same covariance) 
+% original covariance matrix (covT)
 covT = zeros(N,N);
 for i=1:N
     for j=1:N
@@ -50,8 +49,7 @@ for i=1:N
     end 
 end
 
-% generate Gram (G) and information matrix (infoM)
-% Generate a set of graded lexicographical ordered indeterminates (ID)
+% Graded lexicographical ordered indeterminates (ID)
 cnt = 0;
 for m0=1:max(m,ms)+1
     mm = m0-1; %total degree 
@@ -68,8 +66,8 @@ for m0=1:max(m,ms)+1
 end              
 disp('Compeletion of ID(graded lexicographical order)')
 switch opt
-    case 'QR' %quadrature 
-% Integration point number 
+    case 'QR' %Option for quadrature 
+% Gauss point number 
 nGauss = ceil((m+1)/2)+10;
 % Gauss points and weight values (Gaussian)
 [xx, ww] =GaussHermite_2(nGauss);
@@ -80,19 +78,17 @@ ww2 = sqrt(1/pi).*ww;
 tx = [xx1, xx2];
 tw = [ww1, ww2];
 
-% Generate normalized mean valued Gram-matrix 
-%Cautions: max order: m=2
 count = 0;
 grA = [nA, nAs];
 A = max(grA);
-G = zeros(A,A); % Initialize gram matrix 
+% monomial moment matrix (G=Gm in paper)
+G = zeros(A,A); 
 for iRow=1:A 
-    for iCol=iRow:A 
-        % Estimate index of E(X_row*X_col) 
-        chkID = ID(iRow,:) + ID(iCol,:); %chkID is the same as how size of order  ex) X^2, X^3  
-        nZeroID = find(chkID~=0); %nZeroID is the same as which of variables ex) X1, X2 
+    for iCol=iRow:A  
+        chkID = ID(iRow,:) + ID(iCol,:); %chkID: ex) (row)(x1^(1),x2^(2))*(column)(x1^(2),x2^(3))->(3,5)
+        nZeroID = find(chkID~=0); 
         nZero = length(nZeroID);  
-        tmp = 0; %initialization (Important)
+        tmp = 0; 
         if (nZero == 0)
             tmp = 1;
         end 
@@ -102,10 +98,9 @@ for iRow=1:A
             end 
         end 
         if (nZero == 2)
-            % Set probabilistic property
             id1 = nZeroID(1); id2 = nZeroID(2);
             tmpMu2 = [mu(id1); mu(id2)];
-            % Generate covariance matrix 
+            % Generate covariance matrix 			
             cov2 = [sig(id1)^2, cor(id1,id2)*sig(id1)*sig(id2); cor(id1,id2)*sig(id1)*sig(id2), sig(id2)^2];         
             for k1 = 1:nGauss
                 for k2 = 1:nGauss  
@@ -117,13 +112,10 @@ for iRow=1:A
         end 
         count = count + 1;
         G(iRow, iCol) = tmp;
-        %disp(count);
-        %disp('# of Gauss:'); disp(nGauss);
-        %disp('# of variable:'); disp(nZero);
     end 
 end 
 
-    case 'MC' % Sampling method for Gram matrix  
+    case 'MC' % Option for Sampling method 
 
 nSample = 1000000;
 % Quasi-Monte Carlo sampling 
@@ -134,25 +126,22 @@ q = qrandstream(p);
 z = qrand(q,nSample);
 z1 = unifcdf(z,0,1);
 x = norminv(z1,0,1);
-% Transformation to correlated random variables (x) 
 T12 = chol(cov,'lower');
 x(:,1:2) = (T12*x(:,1:2)')';
 for i=1:2
     x(:,i) = x(:,i) + mu(i);
 end 
-%% Generate normalized mean valued Gram-matrix 
-%Cautions: max order: m=2
 count = 0;
 grA = [nA, nAs];
 A = max(grA);
-G = zeros(A,A); % Initialize gram matrix 
+% Monomial moment matrix (G)
+G = zeros(A,A); 
 for iRow=1:A 
     for iCol=iRow:A 
-        % Estimate index of E(X_row*X_col) 
-        chkID = ID(iRow,:) + ID(iCol,:); %chkID is the same as how size of order  ex) X^2, X^3  
-        nZeroID = find(chkID~=0); %nZeroID is the same as which of variables ex) X1, X2 
+        chkID = ID(iRow,:) + ID(iCol,:); %chkID: ex) (row)(x1^(1),x2^(2))*(column)(x1^(2),x2^(3))->(3,5)
+        nZeroID = find(chkID~=0); 
         nZero = length(nZeroID);  
-        tmp = 0; %initialization (Important)
+        tmp = 0;
         if (nZero == 0)
             tmp = 1;
         end 
@@ -160,21 +149,17 @@ for iRow=1:A
                 tmp = sum(x(:,nZeroID).^chkID(nZeroID))/nSample;
         end 
         if (nZero == 2)
-            % Set probabilistic property
             id1 = nZeroID(1); id2 = nZeroID(2);                          
                 tmp = sum ((x(:,id1).^chkID(id1)).*(x(:,id2).^chkID(id2)))/nSample;                    
         end 
         count = count + 1;
         G(iRow, iCol) = tmp;
-        %disp(count);
-        %disp('# of Gauss:'); disp(nGauss);
-        %disp('# of variable:'); disp(nZero);
     end 
 end
 
     otherwise 
-    disp('wrong option was wrong for Gram matrix generation')
-end % end of Gram matrix generation using selected method 
+    disp('wrong option was selected for monomial moment matrix')
+end % end of the construction of monomial moment matrix 
         
 for iRow=1:A 
     for iCol=iRow+1:A 
@@ -184,9 +169,9 @@ for iRow=1:A
         G(iCol, iRow) = G(iRow,iCol);
     end 
 end 
-% Cholesky decomposition of Gram matrix
+% Cholesky decomposition 
 Q = chol(G,'lower');
-% ON transformation matrix 
+% whitening transformation matrix (QQ=Wm in the paper) 
 QQ = inv(Q);
 
 save(FilNam, 'ID', 'QQ');

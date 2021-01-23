@@ -1,7 +1,3 @@
-%% ========================================================================
-%  y0 function (example1-2)
-%  written by Dongjin Lee (dongjin-lee@uiowa.edu) 
-%% ========================================================================
 function [output]=responY1(X,mu)
 global cntY1
 cntY1 = cntY1 + 1;

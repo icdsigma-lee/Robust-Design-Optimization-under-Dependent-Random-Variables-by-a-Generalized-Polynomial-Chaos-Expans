@@ -1,8 +1,7 @@
 %% ========================================================================
 % Example 1.1: Function of objective function and its grandient  
-% Two input required: 
-% 1. design variables (dv) 
-% Analytic formulae of the first two moment and their sensitivities
+% Input: design variables (dv) Output: objective value and its design sensitivities 
+% Analytic formulae for the first two moment and their sensitivities
 % obtained by Mathematica 
 %  written by Dongjin Lee (dongjin-lee@uiowa.edu) 
 %% ========================================================================

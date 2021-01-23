@@ -1,39 +1,36 @@
 %% ========================================================================
-% Example 1.1: Function of inequality constraint function and its grandient  
-% (single-step approach)
+% Example 2: Function of constraint function and its grandient  
+% Input: design variables (dv) 
+% Output: constraint value and its design sensitivities
 % written by Dongjin Lee (dongjin-lee@uiowa.edu) 
-% Two input required: 
-% 1. design variables (dv) 
-% 2. option for Gram matrix construction: 'QR' quadrature rule/ 'MC' Monte carlo integration (Quasi MC used)
 %% ========================================================================
 function [c, ceq, DC,  DCeq] = confun(dv)
 global cntCon
 %% Initialization
-cntCon = cntCon + 1; % count the function call 
-N = 2; % number of variables 
-m = 1; % degree of ON (Orthonormal basis) for function y1
-ms = 1; % degree of ON for score function
-nd = 2;  % number of design variables 
-% L_{N,m}
-nA = nchoosek(N+m, m); % number of coefficients for function y0
-nAs = nchoosek(N+ms, ms);% number of coefficients for score function 
+cntCon = cntCon + 1; % count function call #
+N = 2; % # of random variables 
+m = 1;% order of GPCE for generic function 
+ms = 1; % order of GPCE for score function
+nd = 2;  % # of design variables
+nA = nchoosek(N+m, m);  % # of GPCE expansion coefficients for generic function
+nAs = nchoosek(N+ms, ms);% # of GPCE expansion coefficients for score function 
 A = max(nA, nAs);
-% file name for loading data during 1st iteration 
+% files for data at 1st iteration
 FilNam = sprintf('gram.mat');
 FilNam1 = sprintf('data.mat');
 FilNam2 = sprintf('data2.mat');
-% normalized mean (mu)
+% means vector (mu) 
 mu1 = 0; 
 mu2 = 0;
 mu = [mu1, mu2];
-% coefficient of variation (sig)
+% standard deviation (sig)
 sig1 = 0.4;
 sig2 = 0.4;
 sig = [sig1, sig2];
 % correlation matrix  
 rho12 = 0.4;
 cor = [1,rho12; rho12,1];
-% normalized mean's covariance matrix (cov)
+% covariance matrix (cov)
 cov = zeros(N,N);
 for i=1:N
     for j=1:N
@@ -55,7 +52,7 @@ grSample = [nSampley, nSamples, nSampleo];
 nSample = max(grSample); 
 if (cntCon == 1)
     
-% Update y1 and score function 
+% output data  
 for L = 1:nSampley
         tmpY(L,1) = responY2(x(L,:),dv);
 end 
@@ -72,12 +69,12 @@ for i = 1:nd
     sen1m(1,i) = sen1m(1,i) + cy(j)*cs(j,i);
     end
 end 
-% scond moment 
+% second moment 
 sen2m = zeros(1,nd);
 for i=1:nA %nA=m
         for j=1:nA %nA=m
             for k=1:nAs %nA=m'
-                if ( (i == 1) || (j == 1) || (k ==1)) % table 
+                if ( (i == 1) || (j == 1) || (k ==1))  
                 if ((i==j) && (i==k) ) 
                     sen2m(1,:) = sen2m(1,:) + cy(i)*cy(j)*cs(k,:);                        
                 elseif ((i==1) && (j~=1))
@@ -88,26 +85,27 @@ for i=1:nA %nA=m
                     if (i==j),  sen2m(1,:) = sen2m(1,:) +  cy(i)*cy(j)*cs(k,:);     end 
                 end 
             else 
-                % E[PsiXPsiXPsi]          
+                %  E[ON * ON * ON]          
                 sen2m(1,:) = sen2m(1,:) + cy(i)*cy(j)*cs(k,:)*triON(i,j,k);
             end 
         end 
     end 
 end  
-
+% variance
 varY2 = sum(cy(2:end).^2);
+% mean
 meanY2 = cy(1);
-
+% constraint value
 c = 3*sqrt(varY2)-meanY2;
 ceq = [];
-
+% design sensitivities
 DC = ((3/2)*(1/sqrt(varY2))*(sen2m - 2*meanY2*sen1m)-sen1m)';
 DCeq = [];
 cy1 = cy;
 disp(c)
 save(FilNam2, 'cy1');
 
-else 
+else %(cntObj ~= 1): the rest of the first iteration 
     load(FilNam);
     load(FilNam1);
     load(FilNam2);
@@ -115,9 +113,10 @@ else
     x(:,i) = x(:,i) + dv(i)-dv0(i);
  end
 x(nSample+1:end,:) = [];
- M = zeros(nSample,A); %monomial bases 
+% Monomial basis (M)
+ M = zeros(nSample,A); 
 for i=1:A
-    chkID = ID(i,:); %chkID is the same as how size of order  ex) X^2, X^3  
+    chkID = ID(i,:); %chkID: ex) (x1^(3),x2^(4))->(3,4)
     nZeroID = find(chkID~=0); %nZeroID is the same as which of variables ex) X1, X2 
     nZero = length(nZeroID);
     if (nZero == 0)
@@ -133,7 +132,7 @@ for i=1:A
     end 
 end  
 
-% Update y1 and score function 
+% output data  
 for L = 1:nSampley 
         tmpY(L,1) = cy1'*QQ(1:nA,1:nA)*M(L,:)';
 end 
@@ -150,7 +149,7 @@ for i = 1:nd
     sen1m(1,i) = sen1m(1,i) + cy(j)*cs(j,i);
     end
 end 
-% scond moment 
+% second moment 
 sen2m = zeros(1,nd);
 for i=1:nA %nA=m
         for j=1:nA %nA=m
@@ -166,19 +165,20 @@ for i=1:nA %nA=m
                     if (i==j),  sen2m(1,:) = sen2m(1,:) +  cy(i)*cy(j)*cs(k,:);     end 
                 end 
             else 
-                % E[PsiXPsiXPsi]          
+                % E[ON X ON X ON]           
                 sen2m(1,:) = sen2m(1,:) + cy(i)*cy(j)*cs(k,:)*triON(i,j,k);
             end 
         end 
     end 
 end  
-
+% variance
 varY2 = sum(cy(2:end).^2);
+% mean
 meanY2 = cy(1);
-
+% constraint value
 c = 3*sqrt(varY2)-meanY2;
 ceq = [];
-
+% design sensitivities
 DC = ((3/2)*(1/sqrt(varY2))*(sen2m - 2*meanY2*sen1m)-sen1m)';
 DCeq = [];
 

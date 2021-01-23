@@ -1,41 +1,38 @@
 %% ========================================================================
-% Example 1.2: Function of objective function and its grandient  (Single-step approach)
-% Two input required: 
-% 1. design variables (dv) 
-% 2. option for Gram matrix construction: 'QR' quadrature rule/ 'MC' Monte carlo integration (Quasi MC used)
-%  written by Dongjin Lee (dongjin-lee@uiowa.edu)
+% Example 1.2: Function of objective function and its grandient  
+% Input: design variables (dv) 
+% Output: objective value and its design sensitivities
+% written by Dongjin Lee (dongjin-lee@uiowa.edu) 
 %% ========================================================================
 function [objValue, objGrad] = objfun(dv) 
 global cntObj 
 double precision;
 %% Initialization
-cntObj = cntObj + 1; % count the function call
+cntObj = cntObj + 1; % count function call #
 opt = 'QR';
-N = 2; % number of variables  
-m=4; % degree of ON (Orthonormal basis) for function y0   
-ms = 1; % degree of ON for score function
-nd = 2; % number of design variables 
+N = 2; % # of random variables 
+m=4; % order of GPCE for generic function 
+ms = 1; % order of GPCE for score function
+nd = 2; % # of design variables 
 % L_{N,m}
-nA = nchoosek(N+m, m); % number of coefficients for function y0
-nAs = nchoosek(N+ms, ms); % number of coefficients for score function 
+nA = nchoosek(N+m, m); % # of GPCE expansion coefficients for generic function 
+nAs = nchoosek(N+ms, ms); % # of GPCE expansion coefficients for score function 
 grA = [nA, nAs];
 A = max(grA);
-% file name for saving data during 1st iteration 
-% save 'Gram matrix', 'expectation of triple products of orthogonal
-% polynomials 
+% files for data at 1st iteration 
 FilNam = sprintf('data.mat');
-% normalized mean (mu)
+% means vector (mu)
 mu1 = 1; 
 mu2 = 1;
 mu = [mu1, mu2];
-% coefficient of variation (sig)
+% standard deviation (sig) 
 sig1 = 0.15;
 sig2 = 0.15;
 sig = [sig1, sig2];
 % correlation matrix  
 rho12 = -0.5;
 cor = zeros(N,N);
-% normalized mean's covariance matrix (cov)
+% covariance matrix (cov)
 cov = zeros(N,N);
 for i=1:N
     for j=1:N
@@ -59,10 +56,9 @@ for i=1:N
     end 
 end
 %% First iteration 
+if (cntObj == 1) 
 
-if (cntObj == 1) % generate an monmial moment matrix (G) 
-
-% Generate a set of graded lexicographical ordered indeterminates (ID)
+% graded lexicographical ordered indeterminates (ID)
 cnt = 0;
 for m0=1:max(m,ms)+1
     mm = m0-1; %total degree 
@@ -80,8 +76,8 @@ end
 disp('Compeletion of ID(graded lexicographical order)')
 
 switch opt
-    case 'QR' %quadrature 
-% Integration point number 
+    case 'QR' %option for quadrature 
+% Gauss point number 
 nGauss = ceil((m+1)/2)+10;
 % Gauss points and weight values (Gaussian)
 [xx, ww] =GaussHermite_2(nGauss);
@@ -92,18 +88,16 @@ ww2 = sqrt(1/pi).*ww;
 tx = [xx1, xx2];
 tw = [ww1, ww2];
 
-% generate ones means-valued monomial moment-matrix 
-
-G = zeros(A,A); % Initialize gram matrix 
-idm = 2*m+1; % max. degree of monomial moments in a two-dimensional monomial moment matrix  
-Mom = zeros(idm, idm); % moments-data matrix 
+% Monomial moment matrix (G)  
+G = zeros(A,A); 
+idm = 2*m+1;
+Mom = zeros(idm, idm); 
 for iRow=1:A 
     for iCol=iRow:A 
-        % Estimate index of E(X_row*X_col) 
-        chkID = ID(iRow,:) + ID(iCol,:); %chkID is the same as how size of order  ex) X^2, X^3  
-        nZeroID = find(chkID~=0); %nZeroID is the same as which of variables ex) X1, X2 
+        chkID = ID(iRow,:) + ID(iCol,:);  %chkID: ex) (row)(x1^(1),x2^(2))*(column)(x1^(2),x2^(3))->(3,5) 
+        nZeroID = find(chkID~=0); 
         nZero = length(nZeroID);  
-        tmp = 0; %initialization (Important)
+        tmp = 0; 
         tmp2 = Mom(chkID(1)+1, chkID(2)+1);
        if (tmp2 == 0)
         if (nZero == 0)
@@ -115,10 +109,8 @@ for iRow=1:A
             end 
         end 
         if (nZero == 2)
-            % Set probabilistic property
             id1 = nZeroID(1); id2 = nZeroID(2);
             tmpMu2 = [mu(id1); mu(id2)];
-            % Generate covariance matrix 
             cov2 = [sig(id1)^2, cor(id1,id2)*sig(id1)*sig(id2); cor(id1,id2)*sig(id1)*sig(id2), sig(id2)^2];         
             for k1 = 1:nGauss
                 for k2 = 1:nGauss  
@@ -133,13 +125,10 @@ for iRow=1:A
        else 
            G(iRow, iCol) = tmp2;
        end 
-        %disp(count);
-        %disp('# of Gauss:'); disp(nGauss);
-        %disp('# of variable:'); disp(nZero);
     end 
 end 
 
-    case 'MC' % Sampling method for Gram matrix  
+    case 'MC' % Option for Sampling method  
 
 nSample = 1000000;
 % Quasi-Monte Carlo sampling 
@@ -150,25 +139,21 @@ q = qrandstream(p);
 z = qrand(q,nSample);
 z1 = unifcdf(z,0,1);
 x = norminv(z1,0,1);
-% Transformation to correlated random variables (x) 
 T12 = chol(cov,'lower');
 x(:,1:2) = (T12*x(:,1:2)')';
 for i=1:2
     x(:,i) = x(:,i) + mu(i);
 end 
-%% Generate normalized mean valued Gram-matrix 
-%Cautions: max order: m=2
 count = 0;
 grA = [nA, nAs];
 A = max(grA);
-G = zeros(A,A); % Initialize gram matrix 
+G = zeros(A,A); 
 for iRow=1:A 
     for iCol=iRow:A 
-        % Estimate index of E(X_row*X_col) 
-        chkID = ID(iRow,:) + ID(iCol,:); %chkID is the same as how size of order  ex) X^2, X^3  
-        nZeroID = find(chkID~=0); %nZeroID is the same as which of variables ex) X1, X2 
+        chkID = ID(iRow,:) + ID(iCol,:);
+        nZeroID = find(chkID~=0);
         nZero = length(nZeroID);  
-        tmp = 0; %initialization (Important)
+        tmp = 0; 
         if (nZero == 0)
             tmp = 1;
         end 
@@ -176,21 +161,17 @@ for iRow=1:A
                 tmp = sum(x(:,nZeroID).^chkID(nZeroID))/nSample;
         end 
         if (nZero == 2)
-            % Set probabilistic property
             id1 = nZeroID(1); id2 = nZeroID(2);                          
                 tmp = sum ((x(:,id1).^chkID(id1)).*(x(:,id2).^chkID(id2)))/nSample;                    
         end 
         count = count + 1;
         G(iRow, iCol) = tmp;
-        %disp(count);
-        %disp('# of Gauss:'); disp(nGauss);
-        %disp('# of variable:'); disp(nZero);
     end 
 end
 
     otherwise 
-    disp('wrong option was wrong for Gram matrix generation')
-end % end of Gram matrix generation using selected method 
+    disp('wrong option was selected for monomial moment matrix')
+end % end of the construction of monomial moment matrix 
         
 for iRow=1:A 
     for iCol=iRow+1:A 
@@ -200,13 +181,12 @@ for iRow=1:A
         G(iCol, iRow) = G(iRow,iCol);
     end 
 end 
-% Cholesky decomposition of Gram matrix
+% Cholesky decomposition 
 Q = chol(G,'lower');
-% ON transformation matrix 
+% Whitening transformation matrix (QQ=Wm in paper)
 QQ = inv(Q);
 
-% Set sample size for 
-% nSample for generic function 
+% nSampley for generic function 
 % nSamples for score function 
 % nSampleo for E[ON*ON*ON]
 
@@ -215,31 +195,29 @@ nSamples = nAs*10;
 nSampleo = 1000000;
 grSample = [nSampley, nSamples, nSampleo];
 nSample = max(grSample); 
-%% Expansion coefficient (Y)
-if (opt == 'QR') % if opt == MC, samples are reused. 
+if (opt == 'QR')
 % Note that herein x is presented as z in the theorem, that is transformed
-% variable, so its mean value vector is ones 
+% variables, and its mean value vector is ones in scaling transformation 
 rng(123457);
 p = sobolset(N,'Skip',1e3,'Leap',1e2);
 p = scramble(p,'MatousekAffineOwen');
 q = qrandstream(p);
 z1 = qrand(q,nSample);
 x1 = norminv(z1,0,1);
-ts = chol(cov,'lower'); % cov is normalized mean valued covariance matrix 
+ts = chol(cov,'lower'); 
 x = (ts*x1')';
     for i=1:N
      x(:,i) = x(:,i) + mu(i);
     end 
 end 
 x([nSample+1:end],:) = [];
-% least squares regression 
-% information matrix
 tmpY = zeros(nSampley,1);
 tmpS = zeros(nSamples,nd);
-M = zeros(nSample,A); %monomial bases 
+% monomial basis (M)
+M = zeros(nSample,A); 
 for i=1:A
-    chkID = ID(i,:); %chkID is the same as how size of order  ex) X^2, X^3  
-    nZeroID = find(chkID~=0); %nZeroID is the same as which of variables ex) X1, X2 
+    chkID = ID(i,:); 
+    nZeroID = find(chkID~=0); 
     nZero = length(nZeroID);
     if (nZero == 0)
         M(:,i) = 1;
@@ -253,10 +231,9 @@ for i=1:A
         M(:,i) = (x(:,id1).^chkID(id1)).*(x(:,id2).^chkID(id2));
     end 
 end      
-onP = QQ*M';    
-infoM = onP'; % information matrix: L X L_{N,m}
+onP = QQ*M';  % whitening transformation(QQ=Wm in paper)   
+infoM = onP'; % information matrix (infoM)
 
-% (Part needed for updating at next steps) 
 for L = 1:nSample 
     if (L < nSampley +1) 
         tmpY(L,1) = responY1(x(L,:),dv);
@@ -277,7 +254,7 @@ for i=1:nd
 end 
 cs(1,:) = 0;
 %% Sensitivity analysis 
-% First moment of y0
+% First moment
  jacob = zeros(nd,nd);
 for i = 1:nd
     jacob(i,i) = 1/dv(i);
@@ -298,7 +275,7 @@ triON = zeros(nA,nA,nAs);
 for i=1:nA %nA=m
         for j=1:nA %nA=m
             for k=1:nAs %nA=m'
-                if ( (i == 1) || (j == 1) || (k ==1)) % table 
+                if ( (i == 1) || (j == 1) || (k ==1))
                 if ((i==j) && (i==k) && (j==k)) 
                     sen2m(1,:) = sen2m(1,:) + cy(i)*cy(j)*cs(k,:);                        
                 elseif ((i==1) && (j~=1))
@@ -309,7 +286,7 @@ for i=1:nA %nA=m
                     if (i==j),  sen2m(1,:) = sen2m(1,:) +  cy(i)*cy(j)*cs(k,:);     end 
                 end 
             else 
-                % E[PsiXPsiXPsi] monte carlo integration 
+                % E[ON * ON * ON] 
                 tmpYo = sum(infoM(:,i).*infoM(:,j).*infoM(:,k))/nSample;
                 triON(i,j,k) = tmpYo;
                 sen2m(1,:) = sen2m(1,:) + cy(i)*cy(j)*cs(k,:)*tmpYo;
@@ -319,33 +296,35 @@ for i=1:nA %nA=m
 end  
 
 sen2m = sen2m*jacob;
-
+% variance 
 varY1 = sum(cy(2:end).^2);
+% mean 
 meanY1 = cy(1);
+% objective value 
 objValue = sqrt(varY1)/45;
 cy0 = cy;
 dv0 = dv;
+% design sensivitities
 objGrad = ((1/90)*(1/sqrt(varY1))*(sen2m-2*meanY1*sen1m))'; 
 save(FilNam, 'infoM', 'QQ', 'x', 'triON', 'ID', 'tmpS', 'cy0', 'cs', 'dv0')
 
-else %(cntObj ~= 1)
+else %(cntObj ~= 1): the rest of the first iteration 
     load(FilNam); 
     nSampley = nA*3;
     nSamples = nAs*10;
     nSampleo = 1000000;
     grSample = [nSampley, nSamples, nSampleo];
     nSample = max(grSample); 
-    % (Part needed for updating at next steps)
-    % transformation of z to z'
     zTran = zeros(nd,nd);
 for i = 1:nd
     zTran(i,i) = dv(i)/dv0(i);
 end 
  x = x*zTran;    
- M = zeros(nSample,A); %monomial bases 
+% monomial basis (M)  
+ M = zeros(nSample,A);  
 for i=1:A
-    chkID = ID(i,:); %chkID is the same as how size of order  ex) X^2, X^3  
-    nZeroID = find(chkID~=0); %nZeroID is the same as which of variables ex) X1, X2 
+    chkID = ID(i,:); 
+    nZeroID = find(chkID~=0); 
     nZero = length(nZeroID);
     if (nZero == 0)
         M(:,i) = 1;
@@ -389,7 +368,7 @@ sen2m = zeros(1,nd);
 for i=1:nA %nA=m
         for j=1:nA %nA=m
             for k=1:nAs %nA=m'
-                if ( (i == 1) || (j == 1) || (k ==1)) % table 
+                if ( (i == 1) || (j == 1) || (k ==1))
                 if ((i==j) && (i==k) && (j==k)) 
                     sen2m(1,:) = sen2m(1,:) + cy(i)*cy(j)*cs(k,:);                        
                 elseif ((i==1) && (j~=1))
@@ -400,7 +379,7 @@ for i=1:nA %nA=m
                     if (i==j),  sen2m(1,:) = sen2m(1,:) +  cy(i)*cy(j)*cs(k,:);     end 
                 end 
             else 
-                % E[PsiXPsiXPsi]
+                % E[ON * ON * ON]
                 sen2m(1,:) = sen2m(1,:) + cy(i)*cy(j)*cs(k,:)*triON(i,j,k);
             end 
         end 
@@ -408,11 +387,13 @@ for i=1:nA %nA=m
 end 
 
 sen2m = sen2m*jacob;
-
+% variance
 varY1 = sum(cy(2:end).^2);
+% mean
 meanY1 = cy(1);
-
+% objective value 
 objValue = sqrt(varY1)/45;
+% design sensitivities
 objGrad = ((1/90)*(1/sqrt(varY1))*(sen2m-2*meanY1*sen1m))'; 
 display(meanY1);
 display(varY1);

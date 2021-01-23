@@ -1,28 +1,27 @@
 %% ========================================================================
-%  function to generate monomial moment matrix or gram matrix (GPCE)
+%  function to generate monomial moment matrix 
+%  output: gram.mat
 %  written by Dongjin Lee (dongjin-lee@uiowa.edu) 
 %% ========================================================================
 function genGramMatrix
-% user defined initialization 
-N = 2; % number of variables  
-m=4; % degree of ON (Orthonormal basis) for function y0   
-% L_{N,m}
-opt = 'QR';
-nA = nchoosek(N+m, m); % number of coefficients for function y0
-% file name for saving data during 1st iteration 
+N = 2; % # of random variables 
+m=4; % order of GPCE for generic function 
+opt = 'QR'; % option for quadrature 
+nA = nchoosek(N+m, m); % # of GPCE expansion coefficients for generic function 
+% files for data at 1st iteration  
 FilNam = sprintf('gram.mat');
-% zero mean (mu)
+% means vector (mu)
 mu1 = 1; 
 mu2 = 1;
 mu = [mu1, mu2];
-% coefficient of variation (sig)
+% standard deviation (sig) 
 sig1 = 0.15;
 sig2 = 0.15;
 sig = [sig1, sig2];
 % correlation matrix  
 rho12 = -0.5;
 cor= zeros(N,N);
-% normalized mean's covariance matrix (cov)
+% covariance matrix (cov)
 cov = zeros(N,N);
 for i=1:N
     for j=1:N
@@ -52,8 +51,8 @@ end
 end              
 disp('Compeletion of ID(graded lexicographical order)')
 switch opt
-    case 'QR' %quadrature 
-% Integration point number 
+    case 'QR' %Option for quadrature 
+% Gauss point number 
 nGauss = ceil((m+1)/2)+10;
 % Gauss points and weight values (Gaussian)
 [xx, ww] =GaussHermite_2(nGauss);
@@ -63,19 +62,17 @@ ww1 = sqrt(1/pi).*ww;
 ww2 = sqrt(1/pi).*ww;
 tx = [xx1, xx2];
 tw = [ww1, ww2];
-% Generate normalized mean valued Gram-matrix 
-%Cautions: max order: m=2
 
-G = zeros(nA,nA); % Initialize gram matrix 
-idm = 2*m+1; % max. degree of monomial moments in a two-dimensional monomial moment matrix  
-Mom = zeros(idm, idm); % moments-data matrix  
+% monomial moment matrix (G=Gm in paper)
+G = zeros(nA,nA);
+idm = 2*m+1; 
+Mom = zeros(idm, idm); 
 for iRow=1:nA 
-    for iCol=iRow:nA 
-        % Estimate index of E(X_row*X_col) 
-        chkID = ID(iRow,:) + ID(iCol,:); %chkID is the same as how size of order  ex) X^2, X^3  
-        nZeroID = find(chkID~=0); %nZeroID is the same as which of variables ex) X1, X2 
+    for iCol=iRow:nA    
+        chkID = ID(iRow,:) + ID(iCol,:); %chkID: ex) (row)(x1^(1),x2^(2))*(column)(x1^(2),x2^(3))->(3,5)
+        nZeroID = find(chkID~=0); 
         nZero = length(nZeroID);  
-        tmp = 0; %initialization (Important)
+        tmp = 0; %initialization 
         tmp2 = Mom(chkID(1)+1, chkID(2)+1);
       if (tmp2 == 0)
         if (nZero == 0)
@@ -86,8 +83,7 @@ for iRow=1:nA
                 tmp = tmp + (tx(k,nZeroID)^chkID(nZeroID))*tw(k,nZeroID);
             end 
         end 
-        if (nZero == 2)
-            % Set probabilistic property
+        if (nZero == 2) 
             id1 = nZeroID(1); id2 = nZeroID(2);
             tmpMu2 = [mu(id1); mu(id2)];
             % Generate covariance matrix 
@@ -105,13 +101,10 @@ for iRow=1:nA
      else
             G(iRow, iCol) = tmp2;
      end 
-        %disp(count);
-        %disp('# of Gauss:'); disp(nGauss);
-        %disp('# of variable:'); disp(nZero);
     end 
 end
     case 'MC'
-        % on working 
+        % intended blank 
     otherwise 
 end 
 
@@ -123,6 +116,8 @@ for iRow=1:nA
         G(iCol, iRow) = G(iRow,iCol);
     end 
 end 
+% Cholesky decomposition 
 Q = chol(G,'lower');
+% whitening transformation matrix (QQ=Wm in the paper) 
 QQ = inv(Q);
 save(FilNam, 'ID', 'QQ');

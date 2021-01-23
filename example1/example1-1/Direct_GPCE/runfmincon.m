@@ -1,5 +1,6 @@
 %% ========================================================================
 %  submain program (example1-1)
+%  run optimization 
 %  written by Dongjin Lee (dongjin-lee@uiowa.edu) 
 %% ========================================================================
 
@@ -13,11 +14,12 @@ options = optimoptions(options,'GradObj','on','GradConstr','on');
 lb = [0,0];    % lower bounds 
 ub = [10,10];  % upper bounds
 
+% SQP optimization 
+% x0 : initial design
 [x,fval] = fmincon(@objfun,x0,[],[],[],[],lb,ub,... 
    @confun,options);
 
-% do SQP optimization 
-% x0 : initial design
+% save information at every iteration
 function stop = outfun(x,optimValues,state)
 stop = false;
  
@@ -33,10 +35,6 @@ stop = false;
            % searchdir.
            searchdir = [searchdir;...
                         optimValues.searchdirection'];
-%            plot(x(1),x(2),'o');
-%            % Label points with iteration number.
-%            % Add .15 to x(1) to separate label from plotted 'o'
-%            text(x(1)+.15,x(2),num2str(optimValues.iteration));
        case 'done'
            hold off
        otherwise

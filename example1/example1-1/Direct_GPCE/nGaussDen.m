@@ -1,7 +1,7 @@
-%% Multivariate Gauss distribution density function 
-% The code gets input as X, mean row-vector and covariance matrix 
-% outputs multivariate Gaussian PDF value 
-% The code is written by Dongjin Lee 6/19/2018
+%% Multivariate normal (Gaussian) distribution density function 
+% Input: X, mean vector, and covariance matrix 
+% output: multivariate normal PDF value 
+%  written by Dongjin Lee (dongjin-lee@uiowa.edu)
 function [output]=nGaussDen(X, mu, cov)
 
 N = length(X);
