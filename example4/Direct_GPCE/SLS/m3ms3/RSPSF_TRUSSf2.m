@@ -1,8 +1,8 @@
+%% ========================================================================
 %% version 2 : 10 bar truss FEM analysis 
 % output : Stresses and displacements 
-% written by D. Lee (02/07/2020)
-% FEM theory reference: http://www.unm.edu/~bgreen/ME360/Finite%20Element%20Truss.pdf
-
+% written by Dongjin Lee (dongjin-lee@uiowa.edu) 
+%% ========================================================================
 function [YY, LY, w]=RSPSF_TRUSSf2(X, mu_orgn, opt)
 global cntRspObj cntRspCon
 
@@ -154,78 +154,6 @@ end
     disp('wrong input');
 end 
 
-% %% CASE: CELL  
-%     case 1 
-% nElem=10;
-% nDof=2; %bar element 
-% nNode=6;
-% P=-1E5; % Unit, lb 
-% L=360; % Unit, in 
-% E=1E7; % Unit, psi
-% C=E/L;
-% elem=zeros(nElem,2);
-% KK=zeros(nDof*nNode,nDof*nNode);
-% FF=zeros(nDof*nNode,1);
-% UU=zeros(nDof*nNode,1);
-% elem(1,:)=[1 2];
-% elem(2,:)=[2 3];
-% elem(3,:)=[3 6];
-% elem(4,:)=[5 6];
-% elem(5,:)=[4 5];
-% elem(6,:)=[1 5];
-% elem(7,:)=[2 4];
-% elem(8,:)=[2 5];
-% elem(9,:)=[2 6];
-% elem(10,:)=[3 5];
-% a1=cos(pi/4); a2=sin(pi/4);
-% b1=cos(-pi/4); b2=sin(-pi/4);
-% A=[a1 a2 0 0;-a2 a1 0 0;0 0 a1 a2;0 0 -a2 a1];
-% B=[b1 b2 0 0;-b2 b1 0 0;0 0 b1 b2;0 0 -b2 b1];
-% nSamp=length(X{1,1});
-% Y1=zeros(nSamp,1);
-% Y2=zeros(nSamp,1);
-% 
-% for mm=1:nSamp
-% % Initilization KK, X 
-%     KK=zeros(nDof*nNode,nDof*nNode);
-%     U=zeros(nElem-2);
-%     Z=zeros(nElem,1);
-%     FF=zeros(nDof*nNode,1);
-%     UU=zeros(nDof*nNode,1);
-%     for pp=1:nElem
-%     Z(pp,1)=exp(mu1+X{pp,1}(mm,1).*sigma1); end     
-% for ii=1:nElem 
-%     index=[elem(ii,1)*nDof-1:elem(ii,1)*nDof,elem(ii,2)*nDof-1:elem(ii,2)*nDof];
-%     switch ii 
-%         case {1, 2, 4, 5}
-%             KK(index,index)=KK(index,index)+Z(ii)*C*[1 0 -1 0;0 0 0 0;-1 0 1 0;0 0 0 0];
-%         case {3, 8}
-%             KK(index,index)=KK(index,index)+Z(ii)*C*[0 0 0 0;0 1 0 -1;0 0 0 0;0 -1 0 1];
-%         case {6, 9}
-%             KK(index,index)=KK(index,index)+Z(ii)*(C/sqrt(2))*A'*[1 0 -1 0;0 0 0 0;-1 0 1 0;0 0 0 0]*A;
-%         case {7, 10}
-%             KK(index,index)=KK(index,index)+Z(ii)*(C/sqrt(2))*B'*[1 0 -1 0;0 0 0 0;-1 0 1 0;0 0 0 0]*B;
-%         otherwise 
-%             disp('Wrong element');
-%     end 
-% end 
-% %% Generation of Force matrix 
-% FF(2*nDof) = P;
-% FF(3*nDof) = P;
-% %% Boundary condtion 
-%     KK([1*nDof-1:1*nDof,4*nDof-1:4*nDof], :)=[];
-%     KK(:,[1*nDof-1:1*nDof,4*nDof-1:4*nDof])=[];
-%     FF([1*nDof-1:1*nDof,4*nDof-1:4*nDof])=[];
-% %% Solve 
-% U=inv(KK)*FF;
-% disp(mm);
-% sIndex=[2 3 5 6];
-% nS=length(sIndex);
-% for jj=1:nS 
-%     UU(sIndex(jj)*nDof-1:sIndex(jj)*nDof)=U(jj*nDof-1:jj*nDof);
-% end 
-% Y1(mm,1)=-1.7+abs(UU(3*nDof));
-% Y2(mm,1)=-10800+abs(UU(2*nDof-1))*C; end 
 otherwise end 
         
 

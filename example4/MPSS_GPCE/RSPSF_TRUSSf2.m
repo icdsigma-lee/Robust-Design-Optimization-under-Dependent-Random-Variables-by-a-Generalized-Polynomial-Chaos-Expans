@@ -1,7 +1,8 @@
+%% ========================================================================
 %% version 2 : 10 bar truss FEM analysis 
 % output : Stresses and displacements 
-% written by D. Lee (dongjin-lee@uiowa.edu)
-
+% written by Dongjin Lee (dongjin-lee@uiowa.edu) 
+%% ========================================================================
 function [YY, LY, w]=RSPSF_TRUSSf2(X, mu_orgn, opt)
 global cntRspObj cntRspCon
 

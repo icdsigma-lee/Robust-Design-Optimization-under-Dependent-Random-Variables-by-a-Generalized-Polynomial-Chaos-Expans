@@ -1,7 +1,8 @@
 %% ========================================================================
-% Example 3: Function of objective function and its grandient (Signle-step GPCE)   
+% Example 4: Function of objective function and its grandient (Signle-step GPCE)   
+% Input: design variables (dv)
+% Output: objective value and design sensitivities  
 % written by Dongjin Lee (dongjin-lee@uiowa.edu) 
-% Input required: design variables (dv) 
 %% ========================================================================
 function [valObj , vObjGrad] = sobjfun(dv)
 %clear all
@@ -15,8 +16,8 @@ cntObj = cntObj + 1;
 ii = ii + 1;
 N = 10; % number of random variables 
 nd = 10; % number of design variables  
-m = 1; % ON degree for generic function 
-ms = 3; % ON degree for score function
+m = 1; % order of GPCE for performance function 
+ms = 3; % order of GPCE for score function
  
 nA = nchoosek(N+m, m); % number of GPCE coefficients in performance func.
 nAs = nchoosek(N+ms, ms); % number of GPCE coefficients in score func.

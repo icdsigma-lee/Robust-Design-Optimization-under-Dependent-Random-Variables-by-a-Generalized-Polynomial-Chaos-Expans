@@ -6,7 +6,7 @@
 function genGramMatrix
 tic
 % user defined initialization 
-N = 10; % number of variables  
+N = 10; % number of random variables  
 m = 2; % ON degree for generic function 
 ms = 3; % ON degree for score function
 nd = 10; % design parameter size 

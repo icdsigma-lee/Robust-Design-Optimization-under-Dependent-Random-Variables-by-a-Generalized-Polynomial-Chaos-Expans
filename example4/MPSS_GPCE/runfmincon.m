@@ -1,5 +1,6 @@
 %% ========================================================================
-%  submain program (example4) Multi-Point Single-Step scheme 
+%  submain program (example4)
+%  run optimization using Multi-Point Single-Step GPCE
 %  written by Dongjin Lee (dongjin-lee@uiowa.edu) 
 %% ========================================================================
 function [history,searchdir, subUb, subLb, df] = runfmincon(x0)
@@ -12,7 +13,7 @@ history.fval = [];
 
 searchdir = [];
 nd = 10;
-fir = 0; % initial iteration 
+fir = 0; % start from this 
 % golden ratio constant 
 gr = (1+sqrt(5))/2; 
 options = optimoptions(@fmincon,'Algorithm','sqp','Display','iter','OutputFcn',@outfun);
@@ -20,9 +21,9 @@ options = optimoptions(options,'GradObj','on','GradConstr','on','TolCon',1e-4,'T
 lb = ones(1, nd)*0.1; ub = ones(1,nd)*35; 
 cntObj = 1; cntCon = 1;  
 
-% terminiation condition
-eps1 = 1E-6; % stopping criteria for design variables
-eps3 = 1E-6; % stopping criteria for objective value 
+% set terminiation condition
+eps1 = 1E-6; % for convergence of design variables
+eps3 = 1E-6; % for convergence of objective value
 
 % feasible estimation 
 dfLast = (ub - x0);
@@ -37,12 +38,12 @@ cnt = 0; % if tcnt == 0, Do the below loop, and otherwise, stop!
 objValueLast0 = 10;
 df = zeros(1,nd);
 while (cnt == 0)
-% q iteration
+% iteration of subdomain problems
 q = q + 1;
 
 cntSizing = 0; %
 cntSizing1 = 0;
-tmp = 0; 
+tmp = 0; % one-tile sizing
 while (cntSizing == 0)
 	tmp = tmp+1;
 	cntCon = 0; cntObj = 0; ii=0;
@@ -57,14 +58,14 @@ while (cntSizing == 0)
 	end 
 	if (chk == 1)
 	cntSizing1 = cntSizing1 + 1;
-	x0 = dfLast*(1/gr) + x0*(1-1/gr); % find feasible design
+	x0 = dfLast*(1/gr) + x0*(1-1/gr); % decide a feasible initial design points 
 	df(q,:) = x0;
 	else 
 	df(q,:) = x0;
 	cntSizing = 1;
 	end 
 	if (cntSizing1 == 10)
-		disp('Searching feasible design fails');
+		disp('Searching feasible designs fails');
 		cntSizing = 1;
 	end 
 	
@@ -72,13 +73,15 @@ while (cntSizing == 0)
 if ((tmp==1) && (q~=1)) 
 	err1 = sqrt((objValue - objValueLast)'*(objValue - objValueLast));
     err2 = sqrt((c-cLast)*(c-cLast)');
+    %err3 = sqrt((df(q,:)-dfLast)*(df(q,:)-dfLast)');
 	if ((err1 <= 1e-2) && (err2 <= 1e-2))
-	% increase overall subregion size 
+	% increase overall sub-region size 
 	beta(:) = beta(:).*gr;
 	elseif ((err1 >= 7e-2) || (err2 >= 7e-2))
-	% decrease overall subregion size 
+	% decrease overall sub-region size 
 	beta(:) = beta(:).*1/gr;
     else end 
+	%% sizing one by one
 	for i=1:nd
 		% Is constraint inequality active?
 		chkL = sqrt((x(i)-subLb(q-1,i))^2);
@@ -86,12 +89,12 @@ if ((tmp==1) && (q~=1))
 		if ((chkL < 1e-2) || (chkU < 1e-2))
             beta(i) = beta(i).*gr;
 		end 
-		% Is dv on convergence step 
+		% Is dv on convergence? 
         err3 = sqrt((df(q,i)-dfLast(i))^2);
 		if (err3 < 0.5)
 		beta(i) = beta(i).*(1/gr);
         end 
-        % limit subregion size
+        % limit size of sub-region
 		if (beta(i) < 0.05)
 			beta(i) = 0.05;
 		end 
@@ -99,7 +102,7 @@ if ((tmp==1) && (q~=1))
 end 
 end 
 
-% decide subregion
+% set sub-domain location 
 for i=1:nd 
     %active check 
     if (q ~= 1)
@@ -123,7 +126,8 @@ for i=1:nd
      subLb(q,i) = df(q,i) -   beta(i)*(ub(i) - lb(i))/2;
      subUb(q,i) = df(q,i)  +  beta(i)*(ub(i) - lb(i))/2;
     end     
-     
+    
+    % restraint to the b.c. 
     if (subLb(q,i) < lb(i))
         subLb(q,i) = lb(i);
     end 
@@ -138,7 +142,11 @@ disp('sub-lower');
 disp(subLb(q,:));	
 save(filNam, 'subUb', 'subLb');
 terminate1 = (df(q,:)-dfLast)*(df(q,:)-dfLast)';
+% Instead above, use sqrt((df(q,:)-dfLast)*(df(q,:)-dfLast)');
+% then, manage eps1 value. Current eps1 value may be too low.
 terminate3 = abs((objValue - objValueLast0) / objValue); 
+% Instead above, use sqrt((objValue - objValueLast0)*(objValue - objValueLast0)');
+% then, manage eps3 value Current eps3 setting may be too low.  
 objValueLast0 = objValue;	
 
 cnt = 0; 
@@ -150,9 +158,8 @@ switch (cnt)
         disp('Optimization is completed');
     case 0      
         cntCon = 1; cntObj= 1; % single-step 
-        % solving local RDO problem using single-step GPCE
+         % local-RDO problem 
         [x,fval] = fmincon(@sobjfun,df(q,:),[],[],[],[],subLb(q,:),subUb(q,:),@sconfun,options);
-        % obtaining data from step2 
         [objValueLast,~] = sobjfun(x);
         [cLast, ~, DCLast, ~] = sconfun(x);
     otherwise  
@@ -180,10 +187,6 @@ FilNam = sprintf('backup.mat');
            searchdir = [searchdir;...
                         optimValues.searchdirection'];
 		   save(FilNam,'history');
-%            plot(x(1),x(2),'o');
-%            % Label points with iteration number.
-%            % Add .15 to x(1) to separate label from plotted 'o'
-%            text(x(1)+.15,x(2),num2str(optimValues.iteration));
        case 'done'
            hold off
        otherwise

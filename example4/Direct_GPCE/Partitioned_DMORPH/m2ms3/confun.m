@@ -1,19 +1,19 @@
 %% ========================================================================
-% Example 3: Function of inequality constraint function and its grandient (Direct GPCE w/DMORPH)   
+% Example 4: Function of inequality constraint function and its grandient (Direct GPCE w/DMORPH)   
+% Input: design variables (dv) 
+% Output: constraint values and design sensitivities
 % written by Dongjin Lee (dongjin-lee@uiowa.edu) 
-% Input required: design variables (dv) 
 %% ======================================================================== 
 function[cnst, ceq, grdnV,  grdneq] = confun(dv)
 
 global cntCon cnst1 diffcnst
 double precision;
 %% Initialization
-% number of variables
 cntCon = cntCon + 1;
-N = 10;
+N = 10; % number of random variables 
 nd = 10; % design parameter size 
-m = 2; % ON degree for generic function 
-ms = 3; % ON degree for score function
+m = 2; % order of GPCE for generic function 
+ms = 3; % order of GPCE for score function
 beta = 0.05;
 % Card. of GPCE coefficients 
 nA = nchoosek(N+m, m);
@@ -99,13 +99,11 @@ x(:,1:nd) = (trfo*x(:,1:nd)')';
 for i=1:nd
     x(:,i) = exp(x(:,i) + mpar(i));
 end 
-
-%% Expansion coefficient (Y)
-% y function output (nSampleo by 1)
-MNB = zeros(nSample, A); %monomial bases 
+% Monomial basis (MNB) 
+MNB = zeros(nSample, A);
 for i=1: A
-    chkID = ID(i,:); %chkID is the same as how size of order  ex) X^2, X^3  
-    nZeroID = find(chkID~=0); %nZeroID is the same as which of variables ex) X1, X2 
+    chkID = ID(i,:); %chkID: ex) (x1^(2), x2^(3))->(2,3)  
+    nZeroID = find(chkID~=0); 
     nZero = length(nZeroID);
     if (nZero == 0)
         MNB(:,i) = 1;
@@ -223,8 +221,8 @@ for i=1:LY
 end
 
 for i=nP+1:nA
-    chkm1 = sum(ID(i-1,:)); % order at previous iter.  
-    chkm2 = sum(ID(i,:)); % order at current iter. 
+    chkm1 = sum(ID(i-1,:)); 
+    chkm2 = sum(ID(i,:));
     
     if (i == (nP + 1))
         if (chkm1 == chkm2)
@@ -300,7 +298,7 @@ for p = 1:LY
         if (p==1), disp(i); end 
         for j=1:nA %nA=m
             for k=1:nAs %nA=m'
-                if ( (i == 1) || (j == 1) || (k ==1)) % table 
+                if ( (i == 1) || (j == 1) || (k ==1)) 
                 if ((i==j) && (i==k) && (j==k)) 
                     sen2m(p,:) = sen2m(p,:) + CFNy(i,p)*CFNy(j,p)*CFNs(k,:);   
                 elseif ((i==1) && (j~=1))
@@ -311,14 +309,11 @@ for p = 1:LY
                     if (i==j),  sen2m(p,:) = sen2m(p,:) + CFNy(i,p)*CFNy(j,p)*CFNs(k,:);  end 
                 end 
             else 
-                % E[PsiXPsiXPsi]
-                %tmpC = (infoMo'*infoMo)\(infoMo'*tmpYo);
                 index = [i,j,k];
                 if (nA <= nAs), index1 = sort(index, 'ascend'); end 
                 if (nA > nAs), index1 = sort(index, 'descend'); end
                 if (TRON(index1(1), index1(2), index1(3)) == 0)
 				TRON(index1(1), index1(2), index1(3)) = sum(INFMo(:,i).*INFMo(:,j).*INFMo(:,k))/nSampleo; end 
-                %tmpC = (infoMo'*infoMo)\(infoMo'*tmpYo);
                 sen2m(p,:) = sen2m(p,:) + CFNy(i,p)*CFNy(j,p)*CFNs(k,:)*TRON(index1(1), index1(2), index1(3));
             end 
         end 
@@ -344,8 +339,8 @@ disp(cnst);
 % end % End of function 
 save(FilNam2, 'TRON', 'INFM', 'x', 'CFNs', '-v7.3');
 
-%% 2nd or higher iterations 
-else 
+
+else %% 2nd or higher iterations 
 
 load(FilNam1);   
 load(FilNam2); 
@@ -367,7 +362,6 @@ for L = 1:nSample
         cnt = cnt + 1;
         % 'cnstn' option create two performance function values of truss (check inside) 
         rsvl(L,:) = Y;
-       %rsvl2(L,1) = Y2;
     end 
 end 
 
@@ -423,8 +417,8 @@ for i=1:LY
 end
 
 for i=nP+1:nA
-    chkm1 = sum(ID(i-1,:)); % order at previous iter.  
-    chkm2 = sum(ID(i,:)); % order at current iter. 
+    chkm1 = sum(ID(i-1,:)); 
+    chkm2 = sum(ID(i,:));
     
     if (i == (nP + 1))
         if (chkm1 == chkm2)
@@ -493,7 +487,7 @@ for p = 1:LY
     for i=1:nA %nA=m
         for j=1:nA %nA=m
             for k=1:nAs %nA=m'
-                if ( (i == 1) || (j == 1) || (k ==1)) % table 
+                if ( (i == 1) || (j == 1) || (k ==1))
                 if ((i==j) && (i==k) && (j==k)) 
                     sen2m(p,:) = sen2m(p,:) + CFNy(i,p)*CFNy(j,p)*CFNs(k,:);   
                 elseif ((i==1) && (j~=1))
@@ -504,8 +498,6 @@ for p = 1:LY
                     if (i==j),  sen2m(p,:) = sen2m(p,:) + CFNy(i,p)*CFNy(j,p)*CFNs(k,:);  end 
                 end 
             else 
-                % E[PsiXPsiXPsi]
-                %tmpC = (infoMo'*infoMo)\(infoMo'*tmpYo);
                 index = [i,j,k];
                 if (nA <= nAs), index1 = sort(index, 'ascend'); end 
                 if (nA > nAs), index1 = sort(index, 'descend'); end
@@ -531,7 +523,7 @@ diffcnst = grdnV(:);
 grdneq = [];
 disp('Inequality:');
 disp(cnst);
-% end % End of function 
+% End of function 
 end 
 
 

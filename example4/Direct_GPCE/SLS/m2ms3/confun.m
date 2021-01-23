@@ -1,7 +1,8 @@
 %% ========================================================================
-% Example 3: Function of inequality constraint function and its grandient (Direct GPCE w/SLS)   
+% Example 4: Function of inequality constraint function and its grandient (Direct GPCE w/DMORPH)   
+% Input: design variables (dv) 
+% Output: constraint values and design sensitivities
 % written by Dongjin Lee (dongjin-lee@uiowa.edu) 
-% Input required: design variables (dv) 
 %% ======================================================================== 
 function[cnst, ceq, grdnV,  grdneq] = confun(dv)
 
@@ -11,7 +12,7 @@ double precision;
 % number of variables
 %cntCon = 0;
 cntCon = cntCon + 1;
-N = 10;
+N = 10; % number of random variables 
 nd = 10; % design parameter size 
 m = 2; % ON degree for generic function 
 ms = 3; % ON degree for score function
@@ -81,8 +82,6 @@ nSampleo = 2000000;
 glSample = [nSampley, nSamples, nSampleo];
 nSample = max(glSample); 
 
-%% Expansion coefficient (Y)
-% y function output (nSampleo by 1)
 cnt = 1;
 for L=1:nSampley 
         [Y, LY, ~] = RSPSF_TRUSSf2(x(L,:), MN, 'cnstn');
@@ -90,7 +89,6 @@ for L=1:nSampley
         cnt = cnt + 1;
         % 'cnstn' option create two performance function values of truss (check inside) 
         rsvl(L,:) = Y;
-       %rsvl2(L,1) = Y2;
 end 
 
 INFMy = INFM([1:nSampley], [1:nA]);
@@ -126,7 +124,7 @@ for p = 1:LY
     for i=1:nA %nA=m
         for j=1:nA %nA=m
             for k=1:nAs %nA=m'
-                if ( (i == 1) || (j == 1) || (k ==1)) % table 
+                if ( (i == 1) || (j == 1) || (k ==1)) 
                 if ((i==j) && (i==k) && (j==k)) 
                     sen2m(p,:) = sen2m(p,:) + CFNy(i,p)*CFNy(j,p)*CFNs(k,:);   
                 elseif ((i==1) && (j~=1))
@@ -138,7 +136,6 @@ for p = 1:LY
                 end 
             else 
                 % E[PsiXPsiXPsi]
-                %tmpC = (infoMo'*infoMo)\(infoMo'*tmpYo);
                 index = [i,j,k];
 				index1 = sort(index, 'ascend');
                 sen2m(p,:) = sen2m(p,:) + CFNy(i,p)*CFNy(j,p)*CFNs(k,:)*TRON(index1(1), index1(2), index1(3));
@@ -163,7 +160,7 @@ end
 grdneq = [];
 disp('Inequality:');
 disp(cnst);
-% end % End of function 
+% End of function 
 
 
 

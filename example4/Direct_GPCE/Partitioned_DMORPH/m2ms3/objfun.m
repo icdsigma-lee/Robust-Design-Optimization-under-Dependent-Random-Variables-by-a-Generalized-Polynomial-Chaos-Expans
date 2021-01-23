@@ -1,19 +1,17 @@
 %% ========================================================================
-% Example 3: Function of objective function and its grandient (Direct GPCE w/partitioned DMORPH)   
-% written by Dongjin Lee (dongjin-lee@uiowa.edu) 
-% Input required: design variables (dv) 
+% Example 4: Function of objective function and its grandient (Direct GPCE w/partitioned DMORPH)   
+% Input: design variables (dv) 
+% Output: objective value and design sensitivities
+% written by Dongjin Lee (dongjin-lee@uiowa.edu)
 %% ========================================================================
 function [valObj , vObjGrad] = objfun(dv)
-%clear all
-%dv = ones(1,10)*30;
+
 global cntObj stat0 statf sopt
-%cntObj = 0;
-% tic
+
 double precision;
 %% Initialization
-% number of variables
 cntObj = cntObj + 1;
-N = 10;
+N = 10; % number of random variables
 nd = 10; % design parameter size 
 m = 2; % ON degree for generic function 
 ms = 3; % ON degree for score function
@@ -101,20 +99,17 @@ for i=1:nd
     x(:,i) = exp(x(:,i) + mpar(i));
 end 
 
-%% Expansion coefficient (Y)
-% standard least squares regression 
-% information matrix
 
-% response-values  
+% output data  
 rsvl = zeros(nSampley,1);
 
 % score function valued response 
 rssc = zeros(nSamples,nd);
-
-MNB = zeros(nSample, A); %monomial bases 
+% Monomial basis (MNB) 
+MNB = zeros(nSample, A); 
 for i=1: A
-    chkID = ID(i,:); %chkID is the same as how size of order  ex) X^2, X^3  
-    nZeroID = find(chkID~=0); %nZeroID is the same as which of variables ex) X1, X2 
+    chkID = ID(i,:); %chkID: ex) (x1^(2), x2^(3))->(2,3) 
+    nZeroID = find(chkID~=0);
     nZero = length(nZeroID);
     if (nZero == 0)
         MNB(:,i) = 1;
@@ -225,8 +220,8 @@ for i=1:LY
 end
 
 for i=nP+1:nA
-    chkm1 = sum(ID(i-1,:)); % order at previous iter.  
-    chkm2 = sum(ID(i,:)); % order at current iter. 
+    chkm1 = sum(ID(i-1,:));  
+    chkm2 = sum(ID(i,:));
     
     if (i == (nP + 1))
         if (chkm1 == chkm2)
@@ -300,7 +295,7 @@ for i=1:nA %nA=m
     disp(i)
         for j=1:nA %nA=m
             for k=1:nAs %nA=m'
-                if ( (i == 1) || (j == 1) || (k ==1)) % table 
+                if ( (i == 1) || (j == 1) || (k ==1)) 
                 if ((i==j) && (i==k) && (j==k)) 
                     sen2m(1,:) = sen2m(1,:) + CFNy(i)*CFNy(j)*CFNs(k,:);                        
                 elseif ((i==1) && (j~=1))
@@ -318,7 +313,6 @@ for i=1:nA %nA=m
 				TRON(index1(1), index1(2), index1(3)) = sum(INFMo(:,i).*INFMo(:,j).*INFMo(:,k))/nSampleo;
                 else 
 				end 
-                %tmpC = (infoMo'*infoMo)\(infoMo'*tmpYo);
                 sen2m(1,:) = sen2m(1,:) + CFNy(i)*CFNy(j)*CFNs(k,:)*TRON(index1(1), index1(2), index1(3));
             end 
         end 
@@ -344,8 +338,7 @@ disp(meaOfobj)
 % data saving for 2nd step 
 save(FilNam2, 'INFM', 'x', 'TRON', 'CFNs', 'w1', '-v7.3');
 
-% from 2nd iterations 
-else %(cntObj~=1)
+else %(cntObj~=1): the rest of 1st iteration 
     load(FilNam1);
     load(FilNam2);
     nSampley = 100;
@@ -354,7 +347,7 @@ else %(cntObj~=1)
     nSampleo = max(2000000, nSample);
     nSample = nSampleo;
 nP = ceil(min(nA/1.5, nSampley/3));
-    % (Part needed for updating at next steps) 
+   
 rsvl = zeros(nSampley,1);
 for L = 1:nSample 
     if (L < nSampley +1) 
@@ -410,8 +403,8 @@ for i=1:LY
 end
 
 for i=nP+1:nA
-    chkm1 = sum(ID(i-1,:)); % order at previous iter.  
-    chkm2 = sum(ID(i,:)); % order at current iter. 
+    chkm1 = sum(ID(i-1,:));  
+    chkm2 = sum(ID(i,:)); 
     
     if (i == (nP + 1))
         if (chkm1 == chkm2)
@@ -478,7 +471,7 @@ sen2m = zeros(1,nd);
     for i=1:nA %nA=m
         for j=1:nA %nA=m
             for k=1:nAs %nA=m'
-                if ( (i == 1) || (j == 1) || (k ==1)) % table 
+                if ( (i == 1) || (j == 1) || (k ==1)) 
                 if ((i==j) && (i==k) && (j==k)) 
                     sen2m(1,:) = sen2m(1,:) + CFNy(i)*CFNy(j)*CFNs(k,:);                        
                 elseif ((i==1) && (j~=1))
@@ -506,8 +499,6 @@ meaOfobj = CFNy(1);
 w1 =12589.4022163097; 
 w2 = 334.41;
 valObj = 0.5*meaOfobj/w1 + 0.5*sqrt(varaOfobj)/w2;
-%valObj = meaOfobj/w1;
-%vObjGrad = ((0.5/w1)*sen1m + (0.5/(2*w2))*(1/sqrt(varaOfobj))*(sen2m - 2*meaOfobj*sen1m))'; 
 vObjGrad = ((0.5/w1)*sen1m + (0.5/(2*w2))*(1/sqrt(varaOfobj))*(sen2m - 2*meaOfobj*sen1m ))'; 
 disp(dv) 
 disp('var of obj :');
