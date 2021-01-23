@@ -1,18 +1,25 @@
 %% ========================================================================
-% Example 3: Function of objective function and its grandient (Direct GPCE)   
+% Example 3: Function of inequality constraint function and its grandient (Direct GPCE w/DMORPH)   
+% Input: design variables (dv) 
+% Output: objective value and design sensitivities
 % written by Dongjin Lee (dongjin-lee@uiowa.edu) 
-% Input required: design variables (dv) 
 %% ========================================================================
-function [objValue, objGrad] = objfun(dv)
+function [objValue, objGrad] = sobjfun(dv)
 
-global cntObj stat0 statf sopt
+%dv = ones(1,10)*30;
+global cntObj stat0 statf sopt diffobj initobj
+%ii = 0;
 % tic
 double precision;
+w1 = 56.5744;
+w2 = 17.0059;
+
 %% Initialization
 % number of variables
+initobj = initobj + 1;
 cntObj = cntObj + 1;
 N = 7; 
-m = 3; % ON degree for generic function 
+m = 1; % ON degree for generic function 
 ms = 1; % ON degree for score function
 nd = 4; % design parameter size
 N1 = 5;
@@ -62,6 +69,9 @@ end
 %% First iteration 
 if (cntObj == 1)
 load(FilNam); %% load ID, QQ 
+if (initobj~=1)
+    load(FilNam1);
+end 
 nSampley = nA*3;
 nSamples = nAs*10;
 nSampleo = 2000000;
@@ -193,20 +203,13 @@ cy = (infoMy'*infoMy)\(infoMy'*tmpY);
 for i=1:nd 
     cs(:,i) = (infoMs'*infoMs)\(infoMs'*tmpS(:,i));
 end
-
 cs(1,:) = 0;
 %% Sensitivity analysis
 % first moment
- jcb = zeros(nd,nd);
+ jacob = zeros(nd,nd);
 for i = 1:nd
-    jcb(i,i) = 1/dv(i);
+    jacob(i,i) = 1/dv(i);
 end 
-% mean of score function
-meaOfsc = zeros(1,nd);
-for i =1:nd
-    meaOfsc(1,i) = cs(1,i);
-end 
-meaOfsc = meaOfsc*jcb;
 
 sen1m = zeros(1,nd);
 for i = 1:nd
@@ -215,10 +218,12 @@ for i = 1:nd
     end
 end 
 
-sen1m = sen1m*jcb;
+sen1m = sen1m*jacob;
 % second moment 
 sen2m = zeros(1,nd);
-triON = zeros(nA,nA,nAs);
+if (initobj == 1)
+triON = zeros(nA, nA, nAs);
+end  
 for i=1:nA1 %nA=m
         for j=1:nA1 %nA=m
             for k=1:nAs1 %nA=m'
@@ -247,12 +252,10 @@ for i=1:nA1 %nA=m
     end 
 end 
 
-sen2m = sen2m*jcb;
+sen2m = sen2m*jacob;
 
 varY0 = sum(cy(2:end).^2);
 meanY0 = cy(1);
-w1 = meanY0;
-w2 = sqrt(varY0);
 
 objValue = 0.5*meanY0/w1 + 0.5*sqrt(varY0)/w2;
 objGrad = ((0.5/w1)*sen1m + (0.5/(2*w2))*(1/sqrt(varY0))*(sen2m - 2*meanY0*sen1m))'; 
@@ -260,9 +263,10 @@ disp(dv)
 disp(varY0)
 disp(meanY0)
 
+cy0 = cy;
+dv0 = dv;
 
-save(FilNam1, 'infoM0', 'x', 'triON', 'tmpS', 'M','w1','w2', '-v7.3');
-
+save(FilNam1, 'infoM0', 'x', 'triON', 'cs', 'M', 'cy0', 'dv0', '-v7.3');
 % 2nd above iteration 
 else %(cntObj~=1)
     load(FilNam);
@@ -275,32 +279,63 @@ else %(cntObj~=1)
 
     % (Part needed for updating at next steps) 
 tmpY = zeros(nSampley,1);
-for L = 1:nSample 
-    if (L < nSampley +1) 
-                tmpY(L,1) = responY0(x(L,:),muTr);
+zTran = zeros(nd, nd); 
+for i = 1:nd
+    zTran(i,i) = dv(i)/dv0(i);
+end 
+x(:,1:nd)= x(:,1:nd)*zTran; 
+M1 = zeros(nSample,A);
+
+for i=1:A
+    chkID = ID(i,:); %chkID is the same as how size of order  ex) X^2, X^3  
+    nZeroID = find(chkID~=0); %nZeroID is the same as which of variables ex) X1, X2 
+    nZero = length(nZeroID);
+    if (nZero == 0)
+        M1(:,i) = 1;
+    end 
+    if (nZero == 1)
+        M1(:,i) = (x(:,nZeroID).^chkID(nZeroID));
+    end 
+    if (nZero == 2)
+        id1 = nZeroID(1);
+        id2 = nZeroID(2);
+        M1(:,i) = (x(:,id1).^chkID(id1)).*(x(:,id2).^chkID(id2));
+    end 
+    if (nZero == 3)
+        id1 = nZeroID(1);
+        id2 = nZeroID(2);
+        id3 = nZeroID(3);
+        M1(:,i) = (x(:,id1).^chkID(id1)).*(x(:,id2).^chkID(id2)).*(x(:,id3).^chkID(id3));
+    end 
+    if (nZero == 4)
+        id1 = nZeroID(1);
+        id2 = nZeroID(2);
+        id3 = nZeroID(3);
+        id4 = nZeroID(4);
+        M1(:,i) = (x(:,id1).^chkID(id1)).*(x(:,id2).^chkID(id2)).*(x(:,id3).^chkID(id3)).*(x(:,id4).^chkID(id4));
     end 
 end 
+
+M1(:,[INDEX0]) = [];
+tmpY = zeros(nSampley,1);
+for L = 1:nSample 
+    if (L < nSampley +1) 
+        tmpY(L,1) = cy0'*QQ1*M1(L,:)';
+    end 
+end 
+
 infoMy = infoM0([1:nSampley],:);
 infoMs = infoM0([1:nSamples],[1:nAs1]);
 infoMo = infoM0([1:nSampleo],:);
-cs = zeros(nAs1,nd);
+
 cy = (infoMy'*infoMy)\(infoMy'*tmpY);
-for i=1:nd 
-    cs(:,i) = (infoMs'*infoMs)\(infoMs'*tmpS(:,i));
-end 
-cs(1,:) = 0;
+
  %% Sensitivity analysis 
 % first moment
- jcb = zeros(nd,nd);
+ jacob = zeros(nd,nd);
 for i = 1:nd
-    jcb(i,i) = 1/dv(i);
+    jacob(i,i) = 1/dv(i);
 end 
-% mean of score function 
-meaOfsc = zeros(1,nd);
-for i =1:nd
-    meaOfsc(1,i) = cs(1,i);
-end 
-meaOfsc = meaOfsc*jcb;
 
 sen1m = zeros(1,nd);
 for i = 1:nd
@@ -309,7 +344,7 @@ for i = 1:nd
     end
 end 
 
-sen1m = sen1m*jcb;
+sen1m = sen1m*jacob;
 
 % second moment 
 sen2m = zeros(1,nd);
@@ -334,7 +369,7 @@ sen2m = zeros(1,nd);
     end 
     end     
 
-sen2m = sen2m*jcb;
+sen2m = sen2m*jacob;
     
 varY0 = sum(cy(2:end).^2);
 meanY0 = cy(1);

@@ -1,5 +1,5 @@
 %% ========================================================================
-% Example 2: Function of inequality constraint function and its grandient (Direct GPCE option2)   
+% Example 3: Function of inequality constraint function and its grandient (Direct GPCE option2)   
 % written by Dongjin Lee (dongjin-lee@uiowa.edu) 
 % Input required: design variables (dv) 
 %% ========================================================================

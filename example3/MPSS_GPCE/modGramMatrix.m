@@ -1,7 +1,7 @@
 %% ========================================================================
 %  function to generate monomial moment matrix or gram matrix (GPCE)
-%  written by Dongjin Lee (dongjin-lee@uiowa.edu) 
 %  output : generate three monomial moment matrices (N=7, N=5, N=5)
+%  written by Dongjin Lee (dongjin-lee@uiowa.edu) 
 %% ========================================================================
 function modGramMatrix
 FilNam = sprintf('gram.mat'); %load ID, G1

@@ -1,6 +1,7 @@
 %% ========================================================================
-%  submain program (example2)
-%  written by Dongjin Lee (dongjin-lee@uiowa.edu) 
+%  submain program (example3)
+%  run optimization 
+%  written by Dongjin Lee (dongjin-lee@uiowa.edu)  
 %% ========================================================================
 function [history,searchdir] = runfmincon(x0)
 global cntObj cntCon con  cntY0 cntY1 cntY2 tGram
@@ -33,10 +34,6 @@ stop = false;
            % searchdir.
            searchdir = [searchdir;...
                         optimValues.searchdirection'];
-%            plot(x(1),x(2),'o');
-%            % Label points with iteration number.
-%            % Add .15 to x(1) to separate label from plotted 'o'
-%            text(x(1)+.15,x(2),num2str(optimValues.iteration));
        case 'done'
            hold off
        otherwise

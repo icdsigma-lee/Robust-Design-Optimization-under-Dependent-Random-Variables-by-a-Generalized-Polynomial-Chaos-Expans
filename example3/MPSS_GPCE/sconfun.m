@@ -1,18 +1,18 @@
 %% ========================================================================
-% Example 3: Function of inequality constraint function and its grandient (Direct GPCE)   
+% Example 3: Function of inequality constraint function and its grandient (Direct GPCE w/DMORPH)   
+% Input: design variables (dv) 
+% Output: constraint values and design sensitivities
 % written by Dongjin Lee (dongjin-lee@uiowa.edu) 
-% Input required: design variables (dv) 
 %% ========================================================================
-function[c, ceq, DC,  DCeq] = confun(dv)
-
-global cntCon con
+function[c, ceq, DC,  DCeq] = sconfun(dv)
+global cntCon initcon
 double precision;
 %% Initialization
-% number of variables
 cntCon = cntCon + 1;
-N = 7; 
-m =4; % ON degree for generic function 
-ms = 1; % ON degree for score function
+initcon = initcon + 1;
+N = 7; % number of random variables 
+m =1; % order of GPCE for generic function 
+ms = 1; % order of GPCE for score function
 nd = 4; % design parameter size 
 % L_{N,m}
 nA = nchoosek(N+m, m);
@@ -90,8 +90,7 @@ load(FilNam);
 load(FilNam1);
 
 
-% Set sample size for 
-% nSample for generic function 
+% nSampley for generic function 
 % nSamples for score function 
 % nSampleo for E[ON*ON*ON]
 
@@ -101,9 +100,7 @@ nSampleo = 2000000;
 grSample = [nSampley, nSamples, nSampleo];
 nSample = max(grSample); 
 if (cntCon == 1) 
-% create triple product of O.G. 
-%% Expansion coefficient (Y)
-% y1 function output (nSampleo by 1)
+
 tmpY1 = zeros(nSampley,1);
 tmpY2 = zeros(nSampley,1);
 for L=1:nSampley
@@ -160,13 +157,11 @@ cs1(1,:) = 0;
 cs2(1,:) = 0;
 %% Sensitivity analysis 
 % first moment
-jcb1 = zeros(nd-1,nd-1);
-jcb2 = zeros(nd-1,nd-1);
-jcb1 = diag([1/dv(1),1/dv(3),1/dv(4)]);
-jcb2 = diag([1/dv(2),1/dv(3),1/dv(4)]);
-
-meaOfsc1 = zeros(1,nd-1);
-meaOfsc2 = zeros(1,nd-1);  
+jacob1 = zeros(nd-1,nd-1);
+jacob2 = zeros(nd-1,nd-1);
+jacob1 = diag([1/dv(1),1/dv(3),1/dv(4)]);
+jacob2 = diag([1/dv(2),1/dv(3),1/dv(4)]);
+  
 sen1m1 = zeros(1,nd-1);
 sen1m2 = zeros(1,nd-1);
 
@@ -177,14 +172,8 @@ for i = 1:nd-1
     end
 end
 
-for i =1:nd-1
-    meaOfsc1(1,i) = cs1(1,i);
-    meaOfsc2(1,i) = cs2(1,i);    
-end 
-meaOfsc1 = meaOfsc1*jcb1;
-meaOfsc2 = meaOfsc2*jcb2;
-sen1m1 = sen1m1*jcb1;
-sen1m2 = sen1m2*jcb2;
+sen1m1 = sen1m1*jacob1;
+sen1m2 = sen1m2*jacob2;
 % scond moment 
 sen2m1 = zeros(1,nd-1);
 sen2m2 = zeros(1,nd-1);
@@ -194,7 +183,7 @@ triON2 = zeros(nA2,nA2,nAs2);
 for i=1:nA1 %nA=m
         for j=1:nA1 %nA=m
             for k=1:nAs1 %nA=m'
-                if ( (i == 1) || (j == 1) || (k ==1)) % table 
+                if ( (i == 1) || (j == 1) || (k ==1))
                 if ((i==j) && (i==k) && (j==k)) 
                     sen2m1(1,:) = sen2m1(1,:) + cy1(i)*cy1(j)*cs1(k,:);   
                     sen2m2(1,:) = sen2m2(1,:) + cy2(i)*cy2(j)*cs2(k,:);
@@ -210,7 +199,6 @@ for i=1:nA1 %nA=m
                 end 
             else 
                 % E[PsiXPsiXPsi]
-                %tmpC = (infoMo'*infoMo)\(infoMo'*tmpYo);
                 index = [i,j,k];
                 index1 = sort(index, 'descend');
                 if (triON1(index1(1), index1(2), index1(3)) == 0)
@@ -230,8 +218,8 @@ for i=1:nA1 %nA=m
     end 
 end 
 
-sen2m1 = sen2m1*jcb1;
-sen2m2 = sen2m2*jcb2;
+sen2m1 = sen2m1*jacob1;
+sen2m2 = sen2m2*jacob2;
 
 varY1 = sum(cy1(2:end).^2);
 meanY1 = cy1(1);
@@ -253,22 +241,64 @@ DC(index2,2) = dc2;
 DCeq = [];
 disp('inequality:')
 disp(c)
-save(FilNam2, 'infoM1', 'infoM2','triON1', 'triON2');
+cy01 = cy1;
+cy02 = cy2;
+dv1 = dv;
+
+save(FilNam2, 'infoM1', 'infoM2','dv1', 'cy01', 'cy02', 'triON1', 'triON2','cs1','cs2');
 % end % End of function 
 else 
-    % create triple product of O.G. 
-%% Expansion coefficient (Y)
-% y1 function output (nSampleo by 1)
+
 load(FilNam2);
-% create triple product of O.G. 
-%% Expansion coefficient (Y)
-% y1 function output (nSampleo by 1)
+
+zTran = zeros(nd,nd);
+for i=1:nd
+    zTran(i,i) = dv(i)/dv1(i);
+end 
+x1 = x;
+x1(:,1:nd)= x(:,1:nd)*zTran; 
+M1 = zeros(nSample,A);
+
+for i=1:A
+    chkID = ID(i,:);  %chkID: ex) (x1^(2), x2^(3))->(2,3) 
+    nZeroID = find(chkID~=0);
+    nZero = length(nZeroID);
+    if (nZero == 0)
+        M1(:,i) = 1;
+    end 
+    if (nZero == 1)
+        M1(:,i) = (x1(:,nZeroID).^chkID(nZeroID));
+    end 
+    if (nZero == 2)
+        id1 = nZeroID(1);
+        id2 = nZeroID(2);
+        M1(:,i) = (x1(:,id1).^chkID(id1)).*(x1(:,id2).^chkID(id2));
+    end 
+    if (nZero == 3)
+        id1 = nZeroID(1);
+        id2 = nZeroID(2);
+        id3 = nZeroID(3);
+        M1(:,i) = (x1(:,id1).^chkID(id1)).*(x1(:,id2).^chkID(id2)).*(x1(:,id3).^chkID(id3));
+    end 
+    if (nZero == 4)
+        id1 = nZeroID(1);
+        id2 = nZeroID(2);
+        id3 = nZeroID(3);
+        id4 = nZeroID(4);
+        M1(:,i) = (x1(:,id1).^chkID(id1)).*(x1(:,id2).^chkID(id2)).*(x1(:,id3).^chkID(id3)).*(x1(:,id4).^chkID(id4));
+    end 
+end 
+
+M2 = M1;
+M1(:, INDEX1) = [];
+M2(:, INDEX2) = [];
+
 tmpY1 = zeros(nSampley,1);
 tmpY2 = zeros(nSampley,1);
 for L=1:nSampley
         if (L < nSampley +1) 
-            tmpY1(L,1) = responY1(x(L,:), muTr);
-            tmpY2(L,1) = responY2(x(L,:), muTr);
+            tmpY1(L,1) = cy01'*QQ2*M1(L,:)';
+            tmpY2(L,1) = cy02'*QQ3*M2(L,:)';
         end 
 end 
 
@@ -286,13 +316,6 @@ for L = 1:nSample
     end 
 end 
 % monomial basis for y1 and y2
-M1 = M;
-M2 = M;
-M1(:,[INDEX1]) = [];
-M2(:,[INDEX2]) = [];
-infoM1 = (QQ2*M1')';
-infoM2 = (QQ3*M2')';
-
 
 infoMo1 = infoM1([1:nSampleo],:);
 infoMo2  = infoM2([1:nSampleo],:);
@@ -307,27 +330,16 @@ infoMs1([nSamples+1:end],:) = [];
 infoMs2 = infoM2(:,[1:nAs2]);
 infoMs2([nSamples+1:end ],:) = [];
 
-cs1 = zeros(nAs1,nd-1);
-cs2 = zeros(nAs1,nd-1);
 cy1 = (infoMy1'*infoMy1)\(infoMy1'*tmpY1);
 cy2 = (infoMy2'*infoMy2)\(infoMy2'*tmpY2);
-for i=1:nd-1 
-    cs1(:,i) = (infoMs1'*infoMs1)\(infoMs1'*tmpS1(:,i));
-    cs2(:,i) = (infoMs2'*infoMs2)\(infoMs2'*tmpS2(:,i));    
-end 
-cs1(1,:) = 0;
-cs2(1,:) = 0;
+
 %% Sensitivity analysis 
 % first moment
-jcb1 = zeros(nd-1,nd-1);
-jcb2 = zeros(nd-1,nd-1);
-
-jcb1 = diag([1/dv(1),1/dv(3),1/dv(4)]);
-jcb2 = diag([1/dv(2),1/dv(3),1/dv(4)]);
-
-meaOfsc1 =  zeros(1,nd-1);
-meaOfsc2 =  zeros(1,nd-1);
-
+jacob1 = zeros(nd-1,nd-1);
+jacob2 = zeros(nd-1,nd-1);
+jacob1 = diag([1/dv(1),1/dv(3),1/dv(4)]);
+jacob2 = diag([1/dv(2),1/dv(3),1/dv(4)]);
+  
 sen1m1 = zeros(1,nd-1);
 sen1m2 = zeros(1,nd-1);
 
@@ -338,8 +350,8 @@ for i = 1:nd-1
     end
 end
 
-sen1m1 = sen1m1*jcb1;
-sen1m2 = sen1m2*jcb2;
+sen1m1 = sen1m1*jacob1;
+sen1m2 = sen1m2*jacob2;
 % scond moment 
 sen2m1 = zeros(1,nd-1);
 sen2m2 = zeros(1,nd-1);
@@ -347,7 +359,7 @@ sen2m2 = zeros(1,nd-1);
 for i=1:nA1 %nA=m
         for j=1:nA1 %nA=m
             for k=1:nAs1 %nA=m'
-                if ( (i == 1) || (j == 1) || (k ==1)) % table 
+                if ( (i == 1) || (j == 1) || (k ==1)) 
                 if ((i==j) && (i==k) && (j==k)) 
                     sen2m1(1,:) = sen2m1(1,:) + cy1(i)*cy1(j)*cs1(k,:);   
                     sen2m2(1,:) = sen2m2(1,:) + cy2(i)*cy2(j)*cs2(k,:);
@@ -363,7 +375,6 @@ for i=1:nA1 %nA=m
                 end 
             else 
                 % E[PsiXPsiXPsi]
-                %tmpC = (infoMo'*infoMo)\(infoMo'*tmpYo);
                 index = [i,j,k];
                 index1 = sort(index, 'descend');
              
@@ -374,8 +385,8 @@ for i=1:nA1 %nA=m
     end 
 end 
 
-sen2m1 = sen2m1*jcb1;
-sen2m2 = sen2m2*jcb2;
+sen2m1 = sen2m1*jacob1;
+sen2m2 = sen2m2*jacob2;
 
 varY1 = sum(cy1(2:end).^2);
 meanY1 = cy1(1);

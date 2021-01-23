@@ -1,5 +1,6 @@
 %% ========================================================================
-%  submain program (example2)
+%  submain program (example3)
+%  run optimization 
 %  written by Dongjin Lee (dongjin-lee@uiowa.edu) 
 %% ========================================================================
 function [history,searchdir] = runfmincon(x0)
@@ -8,7 +9,6 @@ history.x = [];
 history.fval = [];
 searchdir = [];
 con = zeros(2,1);
-%x0 = [20,20,1,1];           % initial design 
 options = optimoptions(@fmincon,'Algorithm','sqp','Display','iter','OutputFcn',@outfun);
 options = optimoptions(options,'GradObj','on','GradConstr','on');
 lb = [2,2,0.3,0.3]; %lower bounds
@@ -33,10 +33,6 @@ stop = false;
            % searchdir.
            searchdir = [searchdir;...
                         optimValues.searchdirection'];
-%            plot(x(1),x(2),'o');
-%            % Label points with iteration number.
-%            % Add .15 to x(1) to separate label from plotted 'o'
-%            text(x(1)+.15,x(2),num2str(optimValues.iteration));
        case 'done'
            hold off
        otherwise

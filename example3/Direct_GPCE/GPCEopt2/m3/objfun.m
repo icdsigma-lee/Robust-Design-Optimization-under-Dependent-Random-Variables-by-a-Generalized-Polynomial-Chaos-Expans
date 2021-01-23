@@ -1,22 +1,20 @@
 %% ========================================================================
-% Example 2: Function of objective function and its grandient (Direct GPCE option2)   
-% written by Dongjin Lee (dongjin-lee@uiowa.edu) 
-% Input required: design variables (dv) 
+% Example 3: Function of objective function and its grandient (Direct GPCE w/partitioned DMORPH)   
+% Input: design variables (dv) 
+% Output: objective value and design sensitivities
+% written by Dongjin Lee (dongjin-lee@uiowa.edu)
 %% ========================================================================
 function [valObj , vObjGrad] = objfun(dv)
-%clear all
-%dv = ones(1,10)*30;
+
 global cntObj stat0 statf sopt 
 
-%cntObj = 0;
-% tic
 double precision;
 %% Initialization
 % number of variables
 cntObj = cntObj + 1;
-N = 7;
-nd = 4; % # of design design variables 
-m =3; % mth-order GPCE approximation 
+N = 7; % number of random variables 
+nd = 4; % # of design variables 
+m =3; % order of GPCE for generic function 
 
 % # of GPCE coefficients 
 nA = nchoosek(N+m, m);
@@ -128,14 +126,11 @@ beta7 = 0.194924200308419;
 mu7 = 0.88748669811357634764020434862424;
 x(:,7) = mu7 + beta7*(-log(-log(normcdf(x(:,7)))));
 
-%% Expansion coefficient (Y)
-% standard least squares regression 
-% information matrix
-
-MNB = zeros(nSample, nA); %monomial bases 
+% Monomial basis (MNB)
+MNB = zeros(nSample, nA); 
 for i=1: nA
-    chkID = ID(i,:); %chkID is the same as how size of order  ex) X^2, X^3  
-    nZeroID = find(chkID~=0); %nZeroID is the same as which of variables ex) X1, X2 
+    chkID = ID(i,:); %chkID: ex) (x1^(2), x2^(3))->(2,3)  
+    nZeroID = find(chkID~=0);
     nZero = length(nZeroID);
     if (nZero == 0)
         MNB(:,i) = 1;
@@ -184,7 +179,7 @@ MNB0 = MNB;
 MNB0(:,[INDEX0]) = [];
 INFM0 = (ORN0*MNB0')';
 
-% response-values  
+% output data   
 rsvl = zeros(nSample,1);
 
 % first two order response-values times score function   
@@ -237,11 +232,7 @@ meaOfobj = CFNy(1);
 
 w1 = meaOfobj;
 w2 = sqrt(varaOfobj);
-%valObj = 0.8*meaOfobj/w1 + 0.2*sqrt(varaOfobj)/w2;
 valObj = 0.5*meaOfobj/w1 + 0.5*sqrt(varaOfobj)/w2;
-%valObj = sqrt(varaOfobj)/w2;
-%vObjGrad = ((0.8/w1)*sen1m + (0.2/(2*w2))*(1/sqrt(varaOfobj))*(sen2m - 2*meaOfobj*sen1m))'; 
-%vObjGrad =  ((1/(2*w2))*(1/sqrt(varaOfobj))*(sen2m - 2*meaOfobj*sen1m))';
 vObjGrad = ((0.5/w1)*sen1m + (0.5/(2*w2))*(1/sqrt(varaOfobj))*(sen2m - 2*meaOfobj*sen1m))'; 
 
 disp(dv) 
@@ -308,14 +299,9 @@ sen2m = sen2m*jcb;
 varaOfobj = sum(CFNy(2:end).^2);
 meaOfobj = CFNy(1);
 
-%w1 =12589.4022163097;
 
-%valObj = 0.8*meaOfobj/w1 + 0.2*sqrt(varaOfobj)/w2;
-%valObj = sqrt(varaOfobj)/w2;
 valObj = 0.5*meaOfobj/w1 + 0.5*sqrt(varaOfobj)/w2;
-%vObjGrad = ((0.8/w1)*sen1m + (0.2/(2*w2))*(1/sqrt(varaOfobj))*(sen2m - 2*meaOfobj*sen1m))'; 
 vObjGrad = ((0.5/w1)*sen1m + (0.5/(2*w2))*(1/sqrt(varaOfobj))*(sen2m - 2*meaOfobj*sen1m))';  
-%vObjGrad =  ((1/(2*w2))*(1/sqrt(varaOfobj))*(sen2m - 2*meaOfobj*sen1m))';
 disp(dv);
 disp('var of obj :');
 disp(varaOfobj);

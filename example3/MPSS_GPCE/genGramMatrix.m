@@ -7,13 +7,14 @@ function genGramMatrix
 
 % user defined initialization 
 N = 7; % number of variables  
-m = 4; % ON degree for generic function 
+m = 1; % ON degree for generic function 
 ms = 1; % ON degree for score function
+mo = 2; % ON dgree for E[ON*ON*ON]   
 nd = 4; % design parameter size 
 % L_{N,m}
 nA = nchoosek(N+m, m);
 nAs = nchoosek(N+ms, ms);
-A = max(nA,nAs);
+nAo = nchoosek(N+mo, mo);
 opt = 'MC';
 FilNam = sprintf('gram.mat');
 % zero mean (mu)
@@ -50,7 +51,7 @@ for i=1:N
 end 
 
 
-nSample = 5000000;
+nSample = 3000000;
 % Sample generation for X1~X7
 rng(123457);
 p = sobolset(N,'Skip',1e3,'Leap',1e2);
@@ -144,6 +145,8 @@ switch opt
 %% Generate Gram-matrix 
 %Cautions: max order: m=2
 count = 0;
+grA = [nA, nAs];
+A = max(grA);
 G = zeros(A,A); % Initialize gram matrix 
 idm = 2*m + 1;
 Mom = zeros(idm, idm, idm, idm, idm, idm, idm); % moments-data matrix 
@@ -247,4 +250,4 @@ G1 = (V*D*W');
 
 Q = chol(G1,'lower');
 QQ = inv(Q);
-save(FilNam, 'ID', 'G1');
+save(FilNam, 'ID', 'QQ', 'G1');

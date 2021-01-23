@@ -1,7 +1,8 @@
 %% ========================================================================
-% Example 2: Function of inequality constraint function and its grandient (Direct GPCE option2)   
+% Example 3: Function of inequality constraint function and its grandient (Direct GPCE option2)   
+% Input: design variables (dv) 
+% Output: constraint values and design sensitivities
 % written by Dongjin Lee (dongjin-lee@uiowa.edu) 
-% Input required: design variables (dv) 
 %% ========================================================================
 function[cnst, ceq, grdnV,  grdneq] = confun(dv)
 %dv = ones(1,10)*30;
@@ -11,9 +12,9 @@ double precision;
 % number of variables
 %cntCon = 0;
 cntCon = cntCon + 1;
-N = 7;
+N = 7; % number of random variables 
 nd = 4; % design parameter size 
-m = 3; % ON degree for generic function 
+m = 3; % order of GPCE for generic function 
 % Card. of GPCE coefficients 
 nA = nchoosek(N+m, m);
 nA1 = nchoosek(N-2+m, m);
@@ -121,14 +122,11 @@ x(:,7) = mu7 + beta7*(-log(-log(normcdf(x(:,7)))));
 cova = zeros(nd,nd);
 cova(1:2,1:2) = cov12;
 cova(3:4,3:4) = cov34;
-%% Expansion coefficient (Y)
-% standard least squares regression 
-% information matrix
-% response-values  
-MNB = zeros(nSample, nA); %monomial bases 
+% monomial basis (MNB) 
+MNB = zeros(nSample, nA); 
 for i=1: nA
-    chkID = ID(i,:); %chkID is the same as how size of order  ex) X^2, X^3  
-    nZeroID = find(chkID~=0); %nZeroID is the same as which of variables ex) X1, X2 
+    chkID = ID(i,:); %chkID: ex) (x1^(2), x2^(3))->(2,3)  
+    nZeroID = find(chkID~=0); 
     nZero = length(nZeroID);
     if (nZero == 0)
         MNB(:,i) = 1;
@@ -256,10 +254,9 @@ grdneq = [];
 disp('Inequality:');
 disp(cnst);
 save(FilNam2,'x','INFM1','INFM2', 'cova');
-% end % End of function 
 
-%% 2nd or higher iternation 
-else 
+
+else % 2nd or higher iternation 
 
 load(FilNam1); %% load ID, QQ 
 load(FilNam2);

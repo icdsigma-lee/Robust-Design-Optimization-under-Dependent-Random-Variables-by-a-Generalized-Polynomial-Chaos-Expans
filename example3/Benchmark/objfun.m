@@ -1,5 +1,5 @@
 %% ========================================================================
-% Example 2: Function of objective function and its grandient (centrial finite difference method)   
+% Example 3: Function of objective function and its grandient (centrial finite difference method)   
 % written by Dongjin Lee (dongjin-lee@uiowa.edu) 
 % Input required: design variables (dv) 
 %% ========================================================================
